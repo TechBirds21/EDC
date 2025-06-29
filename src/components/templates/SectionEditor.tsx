@@ -59,7 +59,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
 
-  const fieldCount = section.fields.length;
+  const fieldCount = (section.fields || []).length;
 
   const duplicateField = (fieldId: string) => {
     onDuplicateField(section.id, fieldId);
@@ -196,7 +196,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleContent>
           <CardContent className="pt-0">
-            {section.fields.length === 0 ? (
+            {(section.fields || []).length === 0 ? (
               <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
                 <Plus className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                 <p className="text-sm text-gray-500 mb-2">No fields in this section</p>
@@ -204,7 +204,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
               </div>
             ) : (
               <div className="space-y-4">
-                {section.fields.map((field, index) => (
+                {(section.fields || []).map((field, index) => (
                   <FieldEditor
                     key={field.id}
                     field={field}

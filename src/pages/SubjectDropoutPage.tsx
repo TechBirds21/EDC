@@ -161,6 +161,23 @@ const SubjectDropoutPage: React.FC = () => {
       // Save to localStorage
       const localKey = `subjectDropout_${volunteerId}`;
       localStorage.setItem(localKey, JSON.stringify(formData));
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Subject Dropout',
+          volunteer_id: volunteerId,
+          status: "submitted",
+          data: formData,
+        });
+        
+        setIsSaved(true);
+        toast.success('Subject dropout saved successfully');
+        setLoading(false);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
 
       // Save to database
       const { error } = await supabase

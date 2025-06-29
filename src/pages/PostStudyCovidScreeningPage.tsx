@@ -119,7 +119,36 @@ export default function PostStudyCovidScreening() {
   const handleContinue = () => {
     try {
       localStorage.setItem(`postStudyCovidScreening_${volunteerId || 'unknown'}_period${periodNo}`, JSON.stringify(formData || {}));
-      console.log('Saved COVID screening data to localStorage');
+      
+      // Try Python API first
+      try {
+        pythonApi.createForm({
+          template_id: 'Post Study COVID-19 Screening',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        }).then(() => {
+          console.log('Successfully submitted COVID screening data via Python API');
+        }).catch(err => {
+          console.warn('Failed to submit via Python API:', err);
+        });
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+      }
+      
+      // Add to form data collector
+      if (volunteerId) {
+        formDataCollector.addFormData({
+          templateId: 'Post Study COVID-19 Screening',
+          templateName: 'Post Study COVID-19 Screening',
+          volunteerId: volunteerId,
+          studyNumber: studyNo || '',
+          caseId: '',
+          data: formData,
+          status: 'submitted',
+          lastModified: new Date()
+        });
+      }
     } catch (err) {
       console.error('Error saving to localStorage:', err);
     }

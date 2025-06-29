@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-  Table, 
+  Table,  
   TableBody, 
   TableCell, 
   TableHead, 
@@ -18,17 +18,31 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Search, 
+  Plus, 
+  Search,  
+  Edit, 
+  Trash2, 
+  Copy, 
   Eye, 
   FileText, 
   Download 
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import RequireRole from '@/components/RequireRole';
 import { formTemplateService } from '@/services/formTemplateService';
+import { TemplatePreview } from '@/components/templates/TemplatePreview';
 
-interface FormTemplate {
+// FormTemplate interface
+interface FormTemplate { 
   id: string;
   name: string;
   description?: string;
@@ -51,6 +65,9 @@ const TemplatesPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   
   useEffect(() => {
     loadTemplates();
@@ -59,9 +76,14 @@ const TemplatesPage: React.FC = () => {
   
   const loadTemplates = async () => {
     try {
-      setLoading(true);
-      const data = await formTemplateService.getTemplates();
-      setTemplates(data);
+      setLoading(true); 
+      const { data, error } = await supabase
+        .from('form_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setTemplates(data || []);
     } catch (error) {
       console.error('Error loading templates:', error);
       toast.error('Failed to load templates');
@@ -81,6 +103,27 @@ const TemplatesPage: React.FC = () => {
       setClients(data || []);
     } catch (error) {
       console.error('Error loading clients:', error);
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!selectedTemplate) return;
+    
+    try {
+      const { error } = await supabase
+        .from('form_templates')
+        .delete()
+        .eq('id', selectedTemplate.id);
+        
+      if (error) throw error;
+      
+      toast.success('Template deleted successfully');
+      setDeleteDialogOpen(false);
+      setSelectedTemplate(null);
+      loadTemplates();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Failed to delete template');
     }
   };
   
@@ -167,9 +210,30 @@ const TemplatesPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/admin/templates/edit/${template.id}`}> 
+                            <Edit className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTemplate(template);
+                            setViewDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTemplate(template);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="sm">
                           <Download className="w-4 h-4 mr-2" />
@@ -184,6 +248,40 @@ const TemplatesPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* View Template Preview Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-4xl min-w-[50vw] h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Template Preview: {selectedTemplate?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto p-4 bg-gray-50 rounded-md">
+            {selectedTemplate && (
+              <TemplatePreview template={selectedTemplate} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Template</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{selectedTemplate?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteTemplate}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -146,7 +146,30 @@ export const Immunology = () => {
   const handleSave = async () => {
     try {
       // Save to database through context
-      await saveLabReport('immunology', formData);
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Immunology/Serology',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        });
+        
+        // Show success message and save to localStorage
+        setSuccess(true);
+        saveToLocalStorage(formData);
+        
+        // Navigate after a short delay
+        setTimeout(() => {
+          setSuccess(false);
+          window.location.href = '/dashboard';
+        }, 1500);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to context method:', apiError);
+        await saveLabReport('immunology', formData);
+      }
       
       // Show success message and save to localStorage
       setSuccess(true);

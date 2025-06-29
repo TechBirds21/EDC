@@ -146,9 +146,22 @@ const XrayEvaluationPage: React.FC = () => {
   const handleSaveLocal = async () => {
     setLoading(true);
     try {
-      await saveLocalAnswers(formData);
+      await saveLocalAnswers(formData); 
       setIsSaved(true);
-      toast.success('X-ray evaluation saved locally');
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'X-Ray Evaluation',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        });
+        toast.success('X-ray evaluation saved successfully');
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+        toast.success('X-ray evaluation saved locally');
+      }
     } catch {
       toast.error('Failed to save X-ray evaluation locally');
       setIsSaved(false);

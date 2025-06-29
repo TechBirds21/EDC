@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useLocation, Outlet, Link } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
 import { 
-  ChevronDown, 
+  ChevronDown,  
   ChevronRight, 
   Users, 
   FileText, 
@@ -14,7 +14,8 @@ import {
   Calendar, 
   ClipboardCheck,
   User,
-  Hash,
+  Hash, 
+  Database,
   Plus
 } from 'lucide-react';
 import { useProjectMenu } from '@/hooks/useProjectMenu';
@@ -88,13 +89,21 @@ const ProjectDashboardLayout: React.FC = () => {
   };
 
   // Create routes from menu
-  const allRoutes = menu?.flatMap(section => 
-    section.subsections.map(subsection => ({
-      path: subsection.path,
-      title: subsection.title,
-      section: section.title
-    }))
-  ) || [];
+  const allRoutes = React.useMemo(() => {
+    if (!menu || !Array.isArray(menu)) return [];
+    
+    return menu.flatMap(section => {
+      if (!section || !section.subsections || !Array.isArray(section.subsections)) {
+        return [];
+      }
+      
+      return section.subsections.map(subsection => ({
+        path: subsection.path,
+        title: subsection.title,
+        section: section.title
+      }));
+    });
+  }, [menu]);
 
   if (loading) {
     return (
@@ -131,7 +140,7 @@ const ProjectDashboardLayout: React.FC = () => {
               <div className="bg-slate-800 rounded-lg p-3 space-y-2">
                 {volunteerId && (
                   <div className="flex items-center space-x-2 text-sm">
-                    <User className="w-4 h-4 text-blue-400" />
+                    <User className="w-4 h-4 text-blue-400" /> 
                     <span className="text-slate-400">Volunteer ID:</span>
                     <span className="font-medium text-white">{volunteerId}</span>
                   </div>
@@ -148,6 +157,32 @@ const ProjectDashboardLayout: React.FC = () => {
                     <FileText className="w-4 h-4 text-purple-400" />
                     <span className="text-slate-400">Case ID:</span>
                     <span className="font-medium text-white">{caseId}</span>
+                  </div>
+                )}
+                
+                {/* Add link to form data collection page */}
+                {caseId && (
+                  <div className="mt-2 pt-2 border-t border-slate-700">
+                    <Link
+                      to={`/admin/form-data/${caseId}`}
+                      className="flex items-center space-x-2 text-sm text-blue-400 hover:text-blue-300"
+                    >
+                      <Database className="w-4 h-4" />
+                      <span>View Form Collection</span>
+                    </Link>
+                  </div>
+                )}
+                
+                {/* Add link to form data collection page */}
+                {caseId && (
+                  <div className="mt-2 pt-2 border-t border-slate-700">
+                    <Link
+                      to={`/admin/form-data/${caseId}`}
+                      className="flex items-center space-x-2 text-sm text-blue-400 hover:text-blue-300"
+                    >
+                      <Database className="w-4 h-4" />
+                      <span>View Form Collection</span>
+                    </Link>
                   </div>
                 )}
               </div>

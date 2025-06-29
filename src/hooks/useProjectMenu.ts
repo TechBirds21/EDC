@@ -30,7 +30,7 @@ export const useProjectMenu = (pid: string) => {
         .from('project_menus')
         .select('menu_structure')
         .eq('project_id', pid)
-        .single();
+        .maybeSingle();
 
       if (data && !error) {
         setMenu(data.menu_structure as unknown as ProjectMenu);

@@ -79,7 +79,7 @@ const SubjectVitalSignsPage: React.FC = () => {
         .eq('template_name', 'Subject Vital Signs')
         .eq('volunteer_id', volunteerId)
         .eq('study_number', studyNumber)
-        .like('answers->period', period)
+        .eq('answers->>period', period)
         .single();
 
       if (data && !error && data.answers && typeof data.answers === 'object' && !Array.isArray(data.answers)) {
@@ -106,6 +106,21 @@ const SubjectVitalSignsPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: `Subject Vital Signs`,
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: { ...formData, period },
+        });
+        
+        alert('Form saved successfully!');
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
+      
       const formEntry = {
         case_id: caseId,
         volunteer_id: volunteerId,

@@ -1,8 +1,8 @@
-
 import { useState, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { db } from "@/lib/dexie";
 import { pythonApi } from "@/services/api";
+import { formDataCollector } from "@/services/formDataCollector";
 import { useToast } from "@/hooks/use-toast";
 
 // Util: Form order for this project (should match sidebar and routes)
@@ -48,7 +48,7 @@ export function useEmployeeFormFlow(formTitle: string) {
   // Save answers to local (create/update)
   const saveLocalAnswers = useCallback(
     async (answers: any) => {
-      if (!caseId || !formTitle) return;
+      if (!caseId || !formTitle) return; 
       const existing = await db.pending_forms
         .where({ template_id: formTitle, patient_id: caseId })
         .first();
@@ -72,6 +72,19 @@ export function useEmployeeFormFlow(formTitle: string) {
           synced: false,
         });
       }
+      
+      // Also add to form data collector
+      formDataCollector.addFormData({
+        templateId: formTitle,
+        templateName: formTitle,
+        volunteerId: volunteerId || '',
+        studyNumber: studyNumber || '',
+        caseId,
+        data: answers,
+        status: 'draft',
+        lastModified: now
+      });
+      
       toast.toast({ title: "Saved!", description: "Saved locally" });
     },
     [formTitle, caseId, volunteerId, studyNumber, toast]
@@ -115,7 +128,7 @@ export function useEmployeeFormFlow(formTitle: string) {
     if (!caseId || !volunteerId || !studyNumber) {
       toast.toast({
         title: "Missing Info",
-        description: "Cannot submit forms: missing volunteer or study info.",
+        description: "Cannot submit forms: missing volunteer or study info.", 
         variant: "destructive",
       });
       return;
@@ -126,17 +139,53 @@ export function useEmployeeFormFlow(formTitle: string) {
     let successCount = 0;
     for (const localForm of allForms) {
       try {
-        // Prepare data for backend
-        const { template_id, answers } = localForm;
-        const response = await pythonApi.createForm({
-          template_id,
-          volunteer_id: volunteerId,
-          status: "completed",
+        // Prepare data for Python API
+        const { template_id, answers } = localForm; 
+        
+        try {
+          // Try Python API first
+          const response = await pythonApi.createForm({
+            template_id,
+            volunteer_id: volunteerId,
+            status: "completed",
+            data: answers,
+          });
+          
+          // Mark local as synced
+          await db.pending_forms.update(localForm.id!, { synced: true });
+          successCount++;
+        } catch (apiError) {
+          console.warn('Python API submission failed, falling back to Supabase:', apiError);
+          
+          // Fall back to Supabase
+          const { error } = await supabase
+            .from('patient_forms')
+            .upsert({
+              case_id: caseId,
+              volunteer_id: volunteerId,
+              study_number: studyNumber,
+              template_name: template_id,
+              answers: answers
+            });
+            
+          if (error) throw error;
+          
+          // Mark local as synced
+          await db.pending_forms.update(localForm.id!, { synced: true });
+          successCount++;
+        }
+        
+        // Mark local as synced in collector
+        formDataCollector.addFormData({
+          templateId: template_id,
+          templateName: template_id,
+          volunteerId,
+          studyNumber,
+          caseId,
           data: answers,
+          status: 'synced',
+          lastModified: new Date()
         });
-        // Mark local as synced
-        await db.pending_forms.update(localForm.id!, { synced: true });
-        successCount++;
       } catch (err) {
         // Log/skip error for partial progress
         console.error("Failed to sync form:", localForm.template_id, err);
@@ -145,9 +194,12 @@ export function useEmployeeFormFlow(formTitle: string) {
     if (successCount === allForms.length) {
       toast.toast({
         title: "All forms submitted",
-        description: "All completed forms submitted to server successfully.",
+        description: "All completed forms submitted to server successfully.", 
       });
       // Optional: redirect to main dashboard
+      
+      // Clear case data from collector after successful submission
+      formDataCollector.clearCaseData(caseId);
     } else if (successCount > 0) {
       toast.toast({
         title: "Partial Success",

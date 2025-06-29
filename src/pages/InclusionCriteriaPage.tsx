@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
@@ -116,7 +115,7 @@ function InclusionCriteriaPage() {
         .select('answers')
         .eq('case_id', caseId)
         .eq('template_name', `Inclusion Exclusion Criteria Period ${activePeriod}`)
-        .maybeSingle();
+        .maybeSingle(); 
 
       if (error) {
         console.error('Error loading data:', error);
@@ -171,6 +170,23 @@ function InclusionCriteriaPage() {
       // Save to localStorage
       const localKey = `inclusionCriteria_${volunteerId}_period${activePeriod}`;
       localStorage.setItem(localKey, JSON.stringify(formData));
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: `Inclusion Exclusion Criteria Period ${activePeriod}`,
+          volunteer_id: volunteerId,
+          status: "submitted",
+          data: formData,
+        });
+        
+        setIsSaved(true);
+        toast.success(`Inclusion/Exclusion criteria for Period ${activePeriod} saved successfully`);
+        setLoading(false);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
 
       // Save to database
       const { error } = await supabase

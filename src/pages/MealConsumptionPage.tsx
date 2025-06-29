@@ -65,7 +65,34 @@ export default function MealConsumption() {
   // Navigation handler with database integration
   const handleNavigate = async () => {
     // Save to localStorage
-    await handleContinue(true);
+    await handleContinue(true); 
+    
+    // Try Python API first
+    try {
+      await pythonApi.createForm({
+        template_id: 'Meal Consumption',
+        volunteer_id: volunteerId || '',
+        status: "submitted",
+        data: formData,
+      });
+      console.log('Successfully submitted meal consumption data via Python API');
+    } catch (apiError) {
+      console.warn('Failed to submit via Python API:', apiError);
+    }
+    
+    // Add to form data collector
+    if (volunteerId) {
+      formDataCollector.addFormData({
+        templateId: 'Meal Consumption',
+        templateName: 'Meal Consumption',
+        volunteerId: volunteerId,
+        studyNumber: studyNo || '',
+        caseId: '',
+        data: formData,
+        status: 'submitted',
+        lastModified: new Date()
+      });
+    }
     
     // Navigate to next page
     navigate('/study-period/vital-signs');

@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useVolunteer } from '../context/VolunteerContext';
 import { CommonHeader } from '../components/CommonHeader';
 import { LabReportHeader } from '../components/LabReportHeader';
@@ -174,7 +173,30 @@ export const ClinicalPathology = () => {
   const handleSave = async () => {
     try {
       // Save to database through context
-      await saveLabReport('pathology', formData);
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Clinical Pathology',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        });
+        
+        // Show success message and save to localStorage
+        setSuccess(true);
+        saveToLocalStorage(formData);
+        
+        // Navigate after a short delay
+        setTimeout(() => {
+          setSuccess(false);
+          window.location.href = '/lab-report/hematology';
+        }, 1500);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to context method:', apiError);
+        await saveLabReport('pathology', formData);
+      }
       
       // Show success message and save to localStorage
       setSuccess(true);

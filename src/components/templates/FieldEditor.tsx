@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label } from '@/components/ui/label'; 
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -60,7 +60,7 @@ interface FieldEditorProps {
 
 export const FieldEditor: React.FC<FieldEditorProps> = ({
   field,
-  sectionId,
+  sectionId, 
   onUpdate,
   onDelete,
   onDuplicate,
@@ -73,6 +73,16 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
   const updateField = (updates: Partial<FormField>) => {
     onUpdate(sectionId, field.id, updates);
   };
+  
+  // Generate a unique field name if it's empty
+  React.useEffect(() => {
+    if (!field.name) {
+      const timestamp = Date.now();
+      const randomSuffix = Math.floor(Math.random() * 1000);
+      const generatedName = `${field.type}_${timestamp}_${randomSuffix}`;
+      updateField({ name: generatedName });
+    }
+  }, [field.id, field.type]);
 
   const addOption = () => {
     const newOption = {
@@ -257,7 +267,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
                     <div key={index} className="flex gap-2">
                       <Input
                         value={option.label}
-                        onChange={(e) => updateOption(index, { label: e.target.value })}
+                        onChange={(e) => updateOption(index, { label: e.target.value, value: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
                         placeholder="Option label"
                         className="h-8"
                       />
@@ -265,7 +275,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
                         value={option.value}
                         onChange={(e) => updateOption(index, { value: e.target.value })}
                         placeholder="Option value"
-                        className="h-8"
+                        className="h-8 text-xs"
                       />
                       <Button
                         variant="outline"
@@ -296,7 +306,10 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
                     <div key={column.id} className="flex gap-2">
                       <Input
                         value={column.label}
-                        onChange={(e) => updateColumn(column.id, { label: e.target.value })}
+                        onChange={(e) => updateColumn(column.id, { 
+                          label: e.target.value,
+                          id: e.target.value.toLowerCase().replace(/\s+/g, '_')
+                        })}
                         placeholder="Column label"
                         className="h-8"
                       />

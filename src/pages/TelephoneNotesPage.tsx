@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FormField } from '../components/FormField';
 import { SignatureFields } from '../components/SignatureFields';
 import type { SignatureData } from '../types/common';
 import { useVolunteer } from '../context/VolunteerContext';
+import { formDataCollector } from '../services/formDataCollector';
 import { supabase } from '../lib/supabase';
 import { useGlobalForm } from '../context/GlobalFormContext';
 import { volunteerService } from '../services/volunteerService';
@@ -30,8 +30,14 @@ interface CallRecord {
 const TelephoneNotes = () => {
   const { volunteerId } = useVolunteer();
   const { studyNo } = useGlobalForm();
+  const location = useLocation();
   const { submitForm, loading: submitting, error: submitError, success: submitSuccess } = useFormSubmission();
   const navigate = useNavigate();
+  
+  // Extract caseId from URL search parameters
+  const searchParams = new URLSearchParams(location.search);
+  const caseId = searchParams.get('case') || '';
+  
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +122,7 @@ const TelephoneNotes = () => {
     setError(null);
     setSuccess(false);
 
-    try {
+    try { 
       if (!volunteerId) {
         setError("Volunteer ID is required");
         return;
@@ -132,7 +138,26 @@ const TelephoneNotes = () => {
       }
 
       const allFormData: Record<string, any> = {};
+      
+      // Get all forms from formDataCollector
+      const collectedForms = formDataCollector.getAllFormDataForCase(caseId || '');
+      if (collectedForms.length > 0) {
+        console.log(`Found ${collectedForms.length} forms in collector for case ${caseId}`);
+        
+        // Submit all forms using the collector
+        const result = await formDataCollector.submitAllForms(caseId || '');
+        if (result.success) {
+          setSuccess(true);
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 3000);
+          return;
+        } else {
+          console.warn('Form collector submission failed, falling back to localStorage method:', result.message);
+        }
+      }
 
+      // Fallback to localStorage method
       for (const key of volunteerKeys) {
         const data = localStorage.getItem(key);
         if (data) {
@@ -149,7 +174,7 @@ const TelephoneNotes = () => {
       // First check if volunteer exists
       try {
         const volunteer = await volunteerService.getOrCreateVolunteer(volunteerId, studyNo || '');
-        
+         
         if (!volunteer) {
           throw new Error('Failed to get or create volunteer record');
         }
@@ -176,7 +201,7 @@ const TelephoneNotes = () => {
       
       // Clear localStorage after successful submission
       for (const key of volunteerKeys) {
-        try {
+        try { 
           console.log(`Removing item from localStorage: ${key}`);
           localStorage.removeItem(key);
         } catch (err) {
@@ -185,6 +210,12 @@ const TelephoneNotes = () => {
       }
       
       setSuccess(true);
+      
+      // Clear case data from collector
+      if (caseId) {
+        formDataCollector.clearCaseData(caseId);
+      }
+      
       setTimeout(() => {
         navigate('/dashboard');
       }, 3000);
@@ -203,7 +234,7 @@ const TelephoneNotes = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-4">
-        <Link 
+        <Link  
           to="/post-study/repeat-assessment" 
           className="text-blue-500 hover:underline"
         >
@@ -226,6 +257,31 @@ const TelephoneNotes = () => {
       
       {error && (
         <ErrorMessage message={error} />
+      )}
+      
+      {/* Form submission status */}
+      {caseId && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <h3 className="font-medium text-blue-800 mb-2">Form Submission Status</h3>
+          <div className="grid grid-cols-4 gap-2 text-sm">
+            <div className="bg-white p-2 rounded border border-blue-100">
+              <div className="font-medium">Total Forms</div>
+              <div className="text-xl">{formDataCollector.getSubmissionStatus(caseId).total}</div>
+            </div>
+            <div className="bg-white p-2 rounded border border-blue-100">
+              <div className="font-medium">Draft</div>
+              <div className="text-xl">{formDataCollector.getSubmissionStatus(caseId).draft}</div>
+            </div>
+            <div className="bg-white p-2 rounded border border-blue-100">
+              <div className="font-medium">Submitted</div>
+              <div className="text-xl">{formDataCollector.getSubmissionStatus(caseId).submitted}</div>
+            </div>
+            <div className="bg-white p-2 rounded border border-blue-100">
+              <div className="font-medium">Synced</div>
+              <div className="text-xl">{formDataCollector.getSubmissionStatus(caseId).synced}</div>
+            </div>
+          </div>
+        </div>
       )}
       
       
@@ -382,6 +438,9 @@ const TelephoneNotes = () => {
               <div>
                 <p className="text-sm text-gray-600">
                   This is the final form. Submitting will save all form data to the database.
+                </p>
+                <p className="text-sm text-gray-600">
+                  {formDataCollector.getSubmissionStatus(caseId || '').total} forms will be submitted.
                 </p>
               </div>
               <button

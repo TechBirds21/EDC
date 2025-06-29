@@ -122,9 +122,22 @@ const HematologyPage: React.FC = () => {
   const handleSaveLocal = async () => {
     setLoading(true);
     try {
-      const answers = { ...formData, labHeaderData };
+      mentalStatus, 
       await saveLocalAnswers(answers);
-      setIsSaved(true);
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Hematology',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: answers,
+        });
+        toast.success('Hematology data saved successfully');
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+        toast.success('Saved locally!');
+      }
       toast.success('Hematology data saved locally');
     } catch {
       toast.error('Failed to save hematology data locally');

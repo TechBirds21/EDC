@@ -168,7 +168,7 @@ const MedicalExaminationPage: React.FC = () => {
   const handleSaveLocal = async () => {
     const answers: FormData = {
       vitalSigns,
-      mentalStatus,
+      mentalStatus, 
       generalAppearance,
       generalExamination,
       physicalExamination,
@@ -177,7 +177,20 @@ const MedicalExaminationPage: React.FC = () => {
     try {
       await saveLocalAnswers(answers);
       setIsSaved(true);
-      toast.success('Saved locally!');
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Medical Examination',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: answers,
+        });
+        toast.success('Medical examination saved successfully');
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+        toast.success('Saved locally!');
+      }
     } catch {
       toast.error('Failed to save form locally');
       setIsSaved(false);

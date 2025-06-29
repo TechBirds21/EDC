@@ -56,7 +56,36 @@ const AnyOtherInformationPage: React.FC = () => {
   const handleSave = () => {
     try {
       localStorage.setItem(`anyOtherInfo_${volunteerId}`, JSON.stringify(formData));
-      console.log('Saved any other info data to localStorage');
+      
+      // Try Python API first
+      try {
+        pythonApi.createForm({
+          template_id: 'Any Other Information',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        }).then(() => {
+          console.log('Successfully submitted any other info data via Python API');
+        }).catch(err => {
+          console.warn('Failed to submit via Python API:', err);
+        });
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+      }
+      
+      // Add to form data collector
+      if (volunteerId && caseId) {
+        formDataCollector.addFormData({
+          templateId: 'Any Other Information',
+          templateName: 'Any Other Information',
+          volunteerId: volunteerId,
+          studyNumber: studyNumber || '',
+          caseId: caseId,
+          data: formData,
+          status: 'submitted',
+          lastModified: new Date()
+        });
+      }
     } catch (error) {
       console.error('Error saving:', error);
     }

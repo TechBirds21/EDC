@@ -246,11 +246,35 @@ const EcgEvaluationPage: React.FC = () => {
         });
 
       if (error) throw error;
-
+      const answers = {
+        ecgEvaluation,
+        xrayEvaluation,
+        sampleCollections,
+        labReports,
+        isParticipationFit,
+        specification,
+        comments,
+        completedBy,
+      };
+      
+      await saveLocalAnswers(answers);
       setIsSaved(true);
-      toast.success('Evaluation saved successfully');
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'ECG Evaluation',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: answers,
+        });
+        toast.success('ECG evaluation saved successfully');
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+        toast.success('ECG evaluation saved locally');
+      }
     } catch (error) {
-      console.error('Error saving:', error);
+      toast.error('Failed to save ECG evaluation locally');
       toast.error('Failed to save evaluation');
     } finally {
       setLoading(false);

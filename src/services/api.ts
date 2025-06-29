@@ -1,5 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
 
+// Helper function to handle errors
+const handleError = (error: any) => {
+  console.error('API Error:', error);
+  throw error;
+};
+
 // Form Templates API
 export const formTemplateApi = {
   getTemplates: async () => {
@@ -8,7 +14,7 @@ export const formTemplateApi = {
       .select('*')
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data || [];
   },
   
@@ -19,7 +25,7 @@ export const formTemplateApi = {
       .eq('id', id)
       .single();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data;
   },
   
@@ -29,7 +35,7 @@ export const formTemplateApi = {
       .insert([template])
       .select();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data?.[0];
   },
   
@@ -40,7 +46,7 @@ export const formTemplateApi = {
       .eq('id', id)
       .select();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data?.[0];
   },
   
@@ -50,7 +56,7 @@ export const formTemplateApi = {
       .delete()
       .eq('id', id);
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return true;
   }
 };
@@ -78,7 +84,7 @@ export const formsApi = {
     
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) return handleError(error);
     return data || [];
   },
   
@@ -89,7 +95,7 @@ export const formsApi = {
       .eq('id', id)
       .single();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data;
   },
   
@@ -100,7 +106,7 @@ export const formsApi = {
       .or(`volunteer_id.ilike.%${searchTerm}%,study_number.ilike.%${searchTerm}%,template_name.ilike.%${searchTerm}%`)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data || [];
   }
 };
@@ -113,7 +119,7 @@ export const volunteersApi = {
       .select('volunteer_id, study_number')
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) return handleError(error);
     
     // Extract unique volunteers
     const uniqueVolunteers = new Map();
@@ -136,7 +142,7 @@ export const volunteersApi = {
       .eq('volunteer_id', id)
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) return handleError(error);
     
     // Extract volunteer info from forms
     if (data && data.length > 0) {
@@ -161,7 +167,7 @@ export const usersApi = {
       .select('*')
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data || [];
   },
   
@@ -172,7 +178,7 @@ export const usersApi = {
       .eq('id', id)
       .single();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data;
   },
   
@@ -183,7 +189,7 @@ export const usersApi = {
       .eq('id', id)
       .select();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data?.[0];
   }
 };
@@ -196,7 +202,7 @@ export const clientsApi = {
       .select('*')
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data || [];
   },
   
@@ -207,7 +213,7 @@ export const clientsApi = {
       .eq('id', id)
       .single();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data;
   },
   
@@ -225,7 +231,7 @@ export const clientsApi = {
         user_id: userData.user?.id
       });
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data;
   },
   
@@ -236,7 +242,7 @@ export const clientsApi = {
       .eq('id', id)
       .select();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data?.[0];
   },
   
@@ -246,7 +252,7 @@ export const clientsApi = {
       .delete()
       .eq('id', id);
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return true;
   }
 };
@@ -282,7 +288,7 @@ export const auditLogsApi = {
     
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) return handleError(error);
     
     // Format the data to include user_email with proper null checks
     const formattedData = data?.map(log => ({
@@ -299,7 +305,7 @@ export const auditLogsApi = {
       .insert([log])
       .select();
       
-    if (error) throw error;
+    if (error) return handleError(error);
     return data?.[0];
   }
 };
@@ -323,18 +329,22 @@ export const pythonApi = {
     
     // Make the request
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
+      ...options, 
       headers
     });
     
     // Handle errors
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(error.message || `API error: ${response.status}`);
+      try {
+        const error = await response.json();
+        return handleError(error.message || `API error: ${response.status}`);
+      } catch (e) {
+        return handleError(`API error: ${response.status}`);
+      }
     }
     
     // Return the data
-    return response.json();
+    return await response.json();
   },
   
   // Volunteers with proper null checks
@@ -346,7 +356,7 @@ export const pythonApi = {
     return pythonApi.fetchWithAuth(`/volunteers/${id}`);
   },
   
-  createVolunteer: async (data: any) => {
+  createVolunteer: async (data: any) => { 
     return pythonApi.fetchWithAuth('/volunteers', {
       method: 'POST',
       body: JSON.stringify(data)
@@ -408,7 +418,7 @@ export const pythonApi = {
     return pythonApi.fetchWithAuth(`/forms/${id}`);
   },
   
-  createForm: async (data: any) => {
+  createForm: async (data: any) => { 
     return pythonApi.fetchWithAuth('/forms', {
       method: 'POST',
       body: JSON.stringify(data)

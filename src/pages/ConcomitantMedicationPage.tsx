@@ -199,7 +199,7 @@ const ConcomitantMedicationPage: React.FC = () => {
   const handleSave = async () => {
     if (!caseId || !volunteerId || !studyNumber) {
       toast.error('Missing required information');
-      return;
+      return; 
     }
 
     setLoading(true);
@@ -208,6 +208,23 @@ const ConcomitantMedicationPage: React.FC = () => {
       // Save to localStorage
       const localKey = `concomitantMedication_${volunteerId}`;
       localStorage.setItem(localKey, JSON.stringify(formData));
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Concomitant Medication',
+          volunteer_id: volunteerId,
+          status: "submitted",
+          data: formData,
+        });
+        
+        setIsSaved(true);
+        toast.success('Concomitant medication saved successfully');
+        setLoading(false);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
 
       // Save to database
       const { error } = await supabase

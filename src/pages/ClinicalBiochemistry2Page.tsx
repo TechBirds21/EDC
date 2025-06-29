@@ -78,8 +78,25 @@ const ClinicalBiochemistry2Page: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      localStorage.setItem(`biochemistry2_${volunteerId}`, JSON.stringify(formData));
+      localStorage.setItem(`biochemistry2_${volunteerId}`, JSON.stringify(formData)); 
       console.log('Saved biochemistry data to localStorage');
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Clinical Biochemistry 2',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        });
+        
+        setIsSaved(true);
+        toast.success('Clinical biochemistry data saved successfully');
+        setLoading(false);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+      }
     } catch (error) {
       console.error('Error saving:', error);
     } finally {

@@ -29,6 +29,7 @@ import AdminEmployeesPage from '@/pages/AdminEmployeesPage';
 import AdminFormBuilderPage from '@/pages/AdminFormBuilderPage';
 import AdminReportsPage from '@/pages/AdminReportsPage';
 import AdminAuditLogPage from '@/pages/AdminAuditLogPage';
+import FormDataCollectionPage from '@/pages/FormDataCollectionPage';
 import AdminPrintPage from '@/pages/AdminPrintPage';
 import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
 import SuperAdminClientsPage from '@/pages/SuperAdminClientsPage';
@@ -157,7 +158,7 @@ function App() {
                 <Route path="templates/edit/:id" element={<AdminFormBuilderPage />} />
                 
                 {/* Super Admin Only Routes */}
-                <Route path="users" element={<UsersPage />} />
+                <Route path="users" element={<UsersPage />} /> 
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="clients" element={<ClientsPage />} />
                 <Route path="audit-logs" element={<AuditLogsPage />} />
@@ -165,6 +166,7 @@ function App() {
                 {/* Legacy routes */}
                 <Route path="employees" element={<AdminEmployeesPage />} />
                 <Route path="form-builder" element={<AdminFormBuilderPage />} />
+                <Route path="form-data/:caseId" element={<FormDataCollectionPage />} />
                 <Route path="print" element={<AdminPrintPage />} />
               </Route>
               

@@ -12,11 +12,12 @@ export const useFormStepper = (orderedRoutes: string[]) => {
 
   /** Detect which tail is inside the current path */
   const { index, basePath } = useMemo(() => {
+    const currentPathname = pathname || "";
     for (let i = 0; i < orderedRoutes.length; i++) {
       const tail = orderedRoutes[i];
-      const pos = pathname.indexOf(tail);
+      const pos = currentPathname.indexOf(tail);
       if (pos !== -1) {
-        return { index: i, basePath: pathname.slice(0, pos) };
+        return { index: i, basePath: currentPathname.slice(0, pos) };
       }
     }
     return { index: -1, basePath: "" };

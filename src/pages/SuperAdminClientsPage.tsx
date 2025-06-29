@@ -80,7 +80,11 @@ const SuperAdminClientsPage: React.FC = () => {
       }
 
       // Use the admin_create_client function to bypass RLS
-      const userId = user?.id;
+      // Handle demo users who don't have UUID format IDs
+      let userId = user?.id;
+      if (userId && userId.startsWith('demo-')) {
+        userId = '00000000-0000-0000-0000-000000000000';
+      }
       
       const { data, error } = await supabase.rpc('admin_create_client', {
         client_name: newClient.name,

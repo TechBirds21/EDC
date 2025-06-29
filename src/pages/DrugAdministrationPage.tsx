@@ -60,8 +60,8 @@ const DrugAdministrationPage: React.FC = () => {
         .eq('template_name', 'Drug Administration')
         .eq('volunteer_id', volunteerId)
         .eq('study_number', studyNumber)
-        .like('answers->period', period)
-        .single();
+        .eq('answers->>period', period)
+        .maybeSingle();
 
       if (data && !error && data.answers) {
         const answers = data.answers as typeof formData & { period?: string };
@@ -98,6 +98,21 @@ const DrugAdministrationPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: `Drug Administration`,
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: { ...formData, period },
+        });
+        
+        alert('Form saved successfully!');
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
+      
       const formEntry = {
         case_id: caseId,
         volunteer_id: volunteerId,

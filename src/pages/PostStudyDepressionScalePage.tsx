@@ -258,7 +258,36 @@ const PostStudyDepressionScalePage = () => {
   const handleContinue = () => {
     try {
       localStorage.setItem(`depressionScale_${volunteerId || 'unknown'}_period${periodNo}`, JSON.stringify(formData));
-      console.log('Saved depression scale data to localStorage');
+      
+      // Try Python API first
+      try {
+        pythonApi.createForm({
+          template_id: 'Post Study Depression Scale',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        }).then(() => {
+          console.log('Successfully submitted depression scale data via Python API');
+        }).catch(err => {
+          console.warn('Failed to submit via Python API:', err);
+        });
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+      }
+      
+      // Add to form data collector
+      if (volunteerId) {
+        formDataCollector.addFormData({
+          templateId: 'Post Study Depression Scale',
+          templateName: 'Post Study Depression Scale',
+          volunteerId: volunteerId,
+          studyNumber: studyNo || '',
+          caseId: '',
+          data: formData,
+          status: 'submitted',
+          lastModified: new Date()
+        });
+      }
     } catch (err) {
       console.error('Error saving to localStorage:', err);
     }

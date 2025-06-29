@@ -119,8 +119,29 @@ const EcgPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     setError(null);
-    try {
+    try { 
       if (caseId && volunteerId && studyNumber) {
+        // Try Python API first
+        try {
+          await pythonApi.createForm({
+            template_id: 'ECG',
+            volunteer_id: volunteerId,
+            status: "submitted",
+            data: formData,
+          });
+          
+          localStorage.setItem(localKey, JSON.stringify(formData));
+          setIsSaved(true);
+          setSuccess(true);
+          toast.success('ECG data saved successfully');
+          setTimeout(() => setSuccess(false), 2000);
+          setLoading(false);
+          return;
+        } catch (apiError) {
+          console.warn('Python API submission failed, falling back to Supabase:', apiError);
+        }
+        
+        // Fall back to Supabase
         const { error } = await supabase
           .from('patient_forms')
           .upsert({

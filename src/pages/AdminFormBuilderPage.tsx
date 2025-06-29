@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TemplateBuilder } from '@/components/templates/TemplateBuilder';
-import { TemplatePreview } from '@/components/templates/TemplatePreview';
+import { TemplatePreview } from '@/components/templates/TemplatePreview'; 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FormField, FormSection } from '@/components/FormBuilder/types';
 
@@ -37,7 +37,7 @@ const AdminFormBuilderPage = () => {
   const [loading, setLoading] = useState(false);
   const [template, setTemplate] = useState<FormTemplateForBuilder>({
     name: '',
-    description: '',
+    description: 'Form template description',
     project_id: 'default-project',
     client_id: '',
     version: 1,
@@ -108,6 +108,27 @@ const AdminFormBuilderPage = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
+      
+      // Validate template name and project ID
+      if (!template.name.trim()) {
+        toast({
+          title: "Error",
+          description: "Template name is required",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      if (!template.project_id.trim()) {
+        toast({
+          title: "Error",
+          description: "Project ID is required",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
       
       // Convert the template to the format expected by Supabase
       const templateData = {
@@ -287,8 +308,11 @@ const AdminFormBuilderPage = () => {
         <DialogContent className="max-w-4xl min-w-[50vw] h-[90vh]">
           <DialogHeader>
             <DialogTitle>Form Preview</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              This is how your form will appear to users
+            </p>
           </DialogHeader>
-          <div className="overflow-auto p-4">
+          <div className="overflow-auto p-4 bg-gray-50 rounded-md">
             <TemplatePreview template={{
               ...template,
               id: template.id || 'preview-id',

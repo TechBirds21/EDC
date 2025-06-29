@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import DynamicFormBuilder from '@/components/DynamicFormBuilder';
-import { VolunteerProvider } from '@/contexts/VolunteerContext';
+import { VolunteerProvider } from '@/contexts/VolunteerContext'; 
 import { Button } from '@/components/ui/button';
 import { FormSection } from '@/components/FormBuilder/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TemplatePreview } from '@/components/templates/TemplatePreview';
 
 // Example template
 const exampleTemplate: {name: string, sections: FormSection[]} = {
@@ -194,32 +196,75 @@ const FormExample: React.FC = () => {
   
   return (
     <div className="container mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Medical History Form</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VolunteerProvider>
-            <DynamicFormBuilder
-              template={exampleTemplate}
-              data={formData}
-              onChange={handleFormChange}
-              formId="example-form-123"
-            />
-          </VolunteerProvider>
-          <div className="mt-6 border-t pt-6">
-            <h3 className="text-lg font-medium mb-4">Form Actions</h3>
-            <div className="flex gap-4">
-              <Button onClick={handleAddRow}>
-                Add Test Result Row
-              </Button>
-              <Button variant="outline" onClick={() => console.log(formData)}>
-                Log Form Data
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="form">
+        <div className="flex justify-between items-center mb-6">
+          <CardTitle className="text-2xl">Form Example</CardTitle>
+          <TabsList>
+            <TabsTrigger value="form">Form View</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="data">Data</TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="form">
+          <Card>
+            <CardHeader>
+              <CardTitle>Medical History Form</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VolunteerProvider>
+                <DynamicFormBuilder
+                  template={exampleTemplate}
+                  data={formData}
+                  onChange={handleFormChange}
+                  formId="example-form-123"
+                />
+              </VolunteerProvider>
+              <div className="mt-6 border-t pt-6">
+                <h3 className="text-lg font-medium mb-4">Form Actions</h3>
+                <div className="flex gap-4">
+                  <Button onClick={handleAddRow}>
+                    Add Test Result Row
+                  </Button>
+                  <Button variant="outline" onClick={() => console.log(formData)}>
+                    Log Form Data
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="preview">
+          <Card>
+            <CardContent className="p-6">
+              <TemplatePreview template={{
+                id: 'example-id',
+                name: exampleTemplate.name,
+                description: 'Example form template for demonstration',
+                project_id: 'example-project',
+                version: 1,
+                json_schema: { sections: exampleTemplate.sections },
+                is_active: true,
+                created_at: new Date().toISOString()
+              }} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="data">
+          <Card>
+            <CardHeader>
+              <CardTitle>Form Data</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96">
+                {JSON.stringify(formData, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

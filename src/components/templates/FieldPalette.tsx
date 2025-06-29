@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge'; 
 import { 
   Plus, 
   Type, 
@@ -29,7 +29,7 @@ import { FormSection } from '../FormBuilder/types';
 
 const fieldTypes = [
   // Basic Input Fields
-  { 
+  {  
     category: 'Basic Fields',
     fields: [
       { value: 'text', label: 'Text Input', icon: Type, description: 'Single line text input' },
@@ -84,7 +84,7 @@ interface FieldPaletteProps {
 
 export const FieldPalette: React.FC<FieldPaletteProps> = ({ sections, onAddField }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>('Basic Fields');
 
   const filteredFieldTypes = fieldTypes.map(category => ({
     ...category,
@@ -95,7 +95,7 @@ export const FieldPalette: React.FC<FieldPaletteProps> = ({ sections, onAddField
   })).filter(category => category.fields.length > 0);
 
   return (
-    <Card className="h-fit sticky top-4">
+    <Card className="h-fit">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -114,14 +114,17 @@ export const FieldPalette: React.FC<FieldPaletteProps> = ({ sections, onAddField
       <CardContent className="space-y-4 max-h-96 overflow-y-auto">
         {filteredFieldTypes.map((category) => (
           <div key={category.category}>
-            <h4 className="font-medium text-xs text-muted-foreground mb-2 uppercase tracking-wide">
+            <h4 
+              className="font-medium text-xs text-muted-foreground mb-2 uppercase tracking-wide cursor-pointer hover:text-primary"
+              onClick={() => setSelectedCategory(selectedCategory === category.category ? null : category.category)}
+            >
               {category.category}
             </h4>
-            <div className="space-y-2">
+            <div className={`space-y-2 ${selectedCategory === category.category ? 'block' : 'hidden'}`}>
               {category.fields.map((field) => {
                 const IconComponent = field.icon;
                 return (
-                  <div key={field.value} className="border rounded-lg p-2 hover:bg-muted/50 transition-colors">
+                  <div key={field.value} className="border rounded-lg p-2 hover:bg-muted/50 transition-colors hover:border-primary">
                     <div className="flex items-start gap-2 mb-2">
                       <div className="bg-primary/10 rounded p-1">
                         <IconComponent className="w-3 h-3 text-primary" />
@@ -134,17 +137,18 @@ export const FieldPalette: React.FC<FieldPaletteProps> = ({ sections, onAddField
                     
                     {sections.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {sections.map((section) => (
-                          <Button
-                            key={section.id}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs h-6 px-2"
-                            onClick={() => onAddField(section.id, field.value)}
-                          >
-                            Add to {section.title}
-                          </Button>
-                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-6 px-2 w-full"
+                          onClick={() => {
+                            if (sections.length > 0) {
+                              onAddField(sections[0].id, field.value);
+                            }
+                          }}
+                        >
+                          Add to {sections.length > 0 ? sections[0].title : 'Form'}
+                        </Button>
                       </div>
                     )}
                     

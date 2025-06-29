@@ -163,7 +163,7 @@ const SystemicExaminationPage: React.FC = () => {
   const handleSaveLocal = async () => {
     const formData: FormData = {
       systemicExam,
-      femaleVolunteer,
+      femaleVolunteer, 
       otherRemarks,
       doneBy,
     };
@@ -171,7 +171,20 @@ const SystemicExaminationPage: React.FC = () => {
     try {
       await saveLocalAnswers(formData);
       setIsSaved(true);
-      toast.success('Systemic examination saved locally');
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Systemic Examination',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        });
+        toast.success('Systemic examination saved successfully');
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+        toast.success('Systemic examination saved locally');
+      }
     } catch {
       toast.error('Failed to save systemic examination locally');
       setIsSaved(false);

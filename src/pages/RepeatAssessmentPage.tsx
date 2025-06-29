@@ -306,6 +306,23 @@ const RepeatAssessmentPage: React.FC = () => {
     try {
       const localKey = `repeatAssessment_${volunteerId}`;
       localStorage.setItem(localKey, JSON.stringify(formData));
+      
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Repeat Assessment',
+          volunteer_id: volunteerId,
+          status: "submitted",
+          data: formData,
+        });
+        
+        setIsSaved(true);
+        toast.success('Repeat assessment saved successfully');
+        setLoading(false);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
 
       const { error } = await supabase
         .from('patient_forms')

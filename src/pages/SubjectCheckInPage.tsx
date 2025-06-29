@@ -138,6 +138,21 @@ const SubjectCheckInPage: React.FC = () => {
   const handleSave = async () => {
     if (!caseId || !volunteerId || !studyNumber) {
       toast.error('Missing required information');
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: `Subject Check-In Period ${period}`,
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: { ...formData, period },
+        });
+        
+        alert('Form saved successfully!');
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
+      
       return;
     }
 

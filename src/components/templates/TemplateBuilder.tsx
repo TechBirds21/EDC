@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/textarea'; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -142,8 +142,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm sticky top-0 z-10">
+      {/* Fixed Header */}
+      <div className="bg-white border-b shadow-sm sticky top-0 z-10 transition-all">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -154,8 +154,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
               <Button variant="outline" onClick={onPreview}>
                 <Eye className="w-4 h-4 mr-2" />
                 Preview
-              </Button>
-              <Button onClick={handleSave}>
+              </Button> 
+              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
                 <Save className="w-4 h-4 mr-2" />
                 Save Template
               </Button>
@@ -166,9 +166,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
 
       <div className="max-w-7xl mx-auto p-6">
         <div className="grid grid-cols-12 gap-6">
-          {/* Field Palette Sidebar */}
-          <div className="col-span-3">
+          {/* Field Palette Sidebar - Fixed Position */}
+          <div className="col-span-3 relative">
+            <div className="sticky top-24">
             <FieldPalette sections={sections} onAddField={onAddField} />
+            </div>
           </div>
 
           {/* Main Canvas */}
@@ -259,7 +261,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                   <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
                     <div className="w-16 h-16 mx-auto mb-4 bg-gray-50 rounded-full flex items-center justify-center">
                       <Plus className="w-8 h-8 text-gray-400" />
-                    </div>
+                    </div> 
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No sections yet</h3>
                     <p className="text-gray-500 mb-4">Get started by adding your first form section</p>
                     <Button onClick={addSection}>

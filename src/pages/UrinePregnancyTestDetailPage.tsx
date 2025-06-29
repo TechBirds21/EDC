@@ -220,11 +220,28 @@ const UrinePregnancyTestDetailPage: React.FC = () => {
   // Save to DB (Supabase)
   const handleSubmit = async () => {
     if (!volunteerId || !studyNumber || !caseId) {
-      toast({ title: "Error", description: "Missing volunteer/study/case information", variant: "destructive" });
+      toast({ title: "Error", description: "Missing volunteer/study/case information", variant: "destructive" }); 
       return;
     }
     setLoading(true);
     try {
+      // Try Python API first
+      try {
+        await pythonApi.createForm({
+          template_id: 'Urine Pregnancy Test',
+          volunteer_id: volunteerId,
+          status: "submitted",
+          data: formData,
+        });
+        
+        setIsSaved(true);
+        toast({ title: "Submitted", description: "Urine pregnancy test submitted successfully." });
+        setLoading(false);
+        return;
+      } catch (apiError) {
+        console.warn('Python API submission failed, falling back to Supabase:', apiError);
+      }
+      
       // Insert or upsert into DB
       const { error } = await supabase
         .from('patient_forms')

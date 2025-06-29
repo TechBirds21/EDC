@@ -41,7 +41,7 @@ const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   const caseId = searchParams.get('case') || 'temp-case';
 
   const allFormPaths = menu?.flatMap(section => 
-    section.subsections.map(sub => sub.path)
+    section.subsections?.map(sub => sub.path) || []
   ) || [];
 
   useEffect(() => {

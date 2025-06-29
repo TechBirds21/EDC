@@ -203,7 +203,37 @@ export const AdverseEventRecording = () => {
   const handleSave = () => {
     try {
       localStorage.setItem(`adverseEventRecording_${volunteerId || 'unknown'}`, JSON.stringify(formData));
-      console.log('Saved adverse event data to localStorage');
+      
+      // Try Python API first
+      try {
+        pythonApi.createForm({
+          template_id: 'Adverse Event Recording',
+          volunteer_id: volunteerId || '',
+          status: "submitted",
+          data: formData,
+        }).then(() => {
+          console.log('Successfully submitted adverse event data via Python API');
+        }).catch(err => {
+          console.warn('Failed to submit via Python API:', err);
+        });
+      } catch (apiError) {
+        console.warn('Python API submission failed:', apiError);
+      }
+      
+      // Add to form data collector
+      if (volunteerId) {
+        formDataCollector.addFormData({
+          templateId: 'Adverse Event Recording',
+          templateName: 'Adverse Event Recording',
+          volunteerId: volunteerId,
+          studyNumber: studyNo || '',
+          caseId: '',
+          data: formData,
+          status: 'submitted',
+          lastModified: new Date()
+        });
+      }
+      
       navigate('/post-study/concomitant-meds');
     } catch (err) {
       console.error('Error saving to localStorage:', err);
