@@ -150,7 +150,6 @@ const DemographicDetailsPage: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [volunteerId, setVolunteerId] = useState("");
   const [studyNumber, setStudyNumber] = useState("");
-  const [isSaved, setIsSaved] = useState(false);
 
   /* -------- Load cached case info & answers -------- */
   useEffect(() => {
