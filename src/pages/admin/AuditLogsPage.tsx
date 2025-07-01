@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +27,10 @@ interface AuditLog {
   created_at: string | null;
   user_email?: string;
   user_name?: string;
+  old_value?: string;
+  new_value?: string;
+  formatted_date?: string;
+  formatted_time?: string;
   profiles?: {
     email: string | null;
   };
@@ -51,35 +54,16 @@ const AuditLogsPage = () => {
     try {
       setLoading(true);
       
-      // Use the new formatted audit logs function
-      const { data, error } = await supabase
-        .rpc('get_formatted_audit_logs', {
-          action_filter: actionFilter !== 'all' ? actionFilter : null,
-          resource_type_filter: resourceFilter !== 'all' ? resourceFilter : null,
-          limit_count: 100
-        });
+      // Use the new function to get formatted audit logs
+      const { data, error } = await supabase.rpc('get_formatted_audit_logs', {
+        p_limit: 100,
+        p_action: actionFilter !== 'all' ? actionFilter : null,
+        p_resource_type: resourceFilter !== 'all' ? resourceFilter : null
+      });
 
       if (error) throw error;
 
-      // Transform data to match AuditLog interface
-      const transformedLogs: AuditLog[] = (data || []).map(log => {
-        return {
-          id: log.id,
-          action: log.action,
-          resource_type: log.resource_type,
-          resource_id: log.resource_id,
-          user_id: null, // Not needed in the transformed data
-          ip_address: null, // Not needed in the transformed data
-          user_agent: null, // Not needed in the transformed data
-          details: {}, // Original details not needed
-          formatted_details: log.formatted_details,
-          created_at: log.created_at,
-          user_email: log.user_email || 'Unknown User',
-          user_name: log.user_name || 'Unknown User'
-        };
-      });
-
-      setLogs(transformedLogs);
+      setLogs(data || []);
     } catch (error) {
       console.error('Error loading audit logs:', error);
       toast({
@@ -96,7 +80,9 @@ const AuditLogsPage = () => {
     const matchesSearch = searchTerm === '' || 
       log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.resource_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.user_email?.toLowerCase().includes(searchTerm.toLowerCase());
+      log.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.old_value?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.new_value?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesAction = actionFilter === 'all' || log.action === actionFilter;
     const matchesResource = resourceFilter === 'all' || log.resource_type === resourceFilter;
@@ -357,42 +343,136 @@ const AuditLogsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {viewMode === 'card' ? renderCardView() : renderTableView()}
+          <div className="space-y-4 overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-medium border">Action</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium border">Resource</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium border">User</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium border">Date & Time</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium border">Old Value</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium border">New Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLogs.map((log) => (
+                  <tr key={log.id} className="border-b hover:bg-muted/50">
+                    <td className="px-4 py-2 border">
+                      <Badge variant={getActionBadgeVariant(log.action)}>
+                        {log.action}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2 border">
+                      <div className="font-medium">{log.resource_type}</div>
+                      {log.resource_id && (
+                        <div className="text-xs text-muted-foreground">
+                          ID: {log.resource_id}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 border">
+                      {log.user_email || 'System'}
+                    </td>
+                    <td className="px-4 py-2 border">
+                      <div>{log.formatted_date}</div>
+                      <div className="text-xs text-muted-foreground">{log.formatted_time}</div>
+                    </td>
+                    <td className="px-4 py-2 border">
+                      <div className="max-w-xs truncate">{log.old_value || '-'}</div>
+                    </td>
+                    <td className="px-4 py-2 border">
+                      <div className="max-w-xs truncate">{log.new_value || '-'}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Legacy card view - can be removed if table view is preferred */}
+          <div className="space-y-4 hidden">
+            {filteredLogs.map((log) => (
+              <div key={log.id} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={getActionBadgeVariant(log.action)}>
+                      {log.action}
+                    </Badge>
+                    <span className="font-medium">{log.resource_type}</span>
+                    {log.resource_id && (
+                      <span className="text-sm text-muted-foreground">
+                        ID: {log.resource_id}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {log.formatted_date} {log.formatted_time}
+                  </span>
+                </div>
+                
+                <div className="space-y-2">
+                  <div>
+                    <span className="font-medium">User:</span> {log.user_email || 'System'}
+                  </div>
+                  
+                  {log.details && Object.keys(log.details).length > 0 && (
+                    <div>
+                      <span className="font-medium">Details:</span>
+                      <div className="mt-1 grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-xs font-medium">Old Value:</span>
+                          <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
+                            {log.old_value || 'N/A'}
+                          </pre>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium">New Value:</span>
+                          <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
+                            {log.new_value || 'N/A'}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {filteredLogs.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No audit logs found matching your criteria. Try adjusting your filters.
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
       
-      {/* Print-only view */}
-      <div className="hidden print:block mt-8">
-        <h1 className="text-2xl font-bold mb-4">Audit Log Report</h1>
-        <p className="mb-4">Generated: {new Date().toLocaleString()}</p>
+      {/* Print-friendly version */}
+      <div className="hidden print:block">
+        <h1 className="text-2xl font-bold mb-4">Audit Logs Report</h1>
+        <p className="mb-4">Generated on: {new Date().toLocaleString()}</p>
         
-        <table className="w-full border-collapse border border-gray-300">
+        <table className="w-full border-collapse border">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-300 px-4 py-2 text-left">Action</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">Resource</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">User</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">Date & Time</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">Details</th>
+            <tr>
+              <th className="border p-2 text-left">Action</th>
+              <th className="border p-2 text-left">Resource</th>
+              <th className="border p-2 text-left">User</th>
+              <th className="border p-2 text-left">Date & Time</th>
+              <th className="border p-2 text-left">Old Value</th>
+              <th className="border p-2 text-left">New Value</th>
             </tr>
           </thead>
           <tbody>
             {filteredLogs.map((log) => (
               <tr key={log.id}>
-                <td className="border border-gray-300 px-4 py-2">{log.action}</td>
-                <td className="border border-gray-300 px-4 py-2">
-                  {log.resource_type}
-                  {log.resource_id && <div className="text-xs">ID: {log.resource_id}</div>}
-                </td>
-                <td className="border border-gray-300 px-4 py-2">
-                  {log.user_name || log.user_email || 'System'}
-                </td>
-                <td className="border border-gray-300 px-4 py-2">
-                  {formatDateTime(log.created_at)}
-                </td>
-                <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap text-xs">
-                  {log.formatted_details || 'No details available'}
-                </td>
+                <td className="border p-2">{log.action}</td>
+                <td className="border p-2">{log.resource_type} {log.resource_id ? `(${log.resource_id})` : ''}</td>
+                <td className="border p-2">{log.user_email || 'System'}</td>
+                <td className="border p-2">{log.formatted_date} {log.formatted_time}</td>
+                <td className="border p-2">{log.old_value || '-'}</td>
+                <td className="border p-2">{log.new_value || '-'}</td>
               </tr>
             ))}
           </tbody>

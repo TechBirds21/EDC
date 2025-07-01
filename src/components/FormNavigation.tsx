@@ -13,6 +13,7 @@ export interface FormNavigationProps {
   onPreview?: () => void;
   loading?: boolean;
   isSaved?: boolean;
+  isSaved?: boolean;
 }
 
 const FormNavigation: React.FC<FormNavigationProps> = ({
@@ -25,6 +26,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
   onPreview,
   loading = false,
   isSaved = false,
+  isSaved = false,
 }) => {
   return (
     <Card className="bg-gray-50 border-gray-200">
@@ -32,13 +34,15 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
         <div className="flex items-center justify-between">
           {/* ← Previous */}
           <Button
-            variant="outline"
+            variant={isSaved ? "default" : "outline"}
             onClick={onPrevious}
             className={`bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 ${!isSaved ? 'opacity-50 cursor-not-allowed' : ''}`}
-            className="flex items-center space-x-2"
+            className={`flex items-center space-x-2 ${
+              isSaved ? "bg-green-600 hover:bg-green-700 text-white" : ""
+            }`}
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Previous</span>
+            <span>{isSaved ? "Saved" : "Save Local"}</span>
           </Button>
 
           {/* Centre Action Group */}
@@ -46,7 +50,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
             {/* 💾 Save Local */}
             <Button
               variant="outline"
-              onClick={onSaveLocal}
+              disabled={!hasNext || loading || !isSaved}
               disabled={loading}
               className="flex items-center space-x-2"
             >
