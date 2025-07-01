@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FolderOpen, FileText, Activity, Plus, Settings, Shield, ArrowLeft, Eye } from 'lucide-react';
+import { Users, FolderOpen, FileText, Activity, Plus, Settings, Shield, ArrowLeft, Eye, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -133,7 +133,7 @@ const SuperAdminDashboard: React.FC = () => {
     {
       title: 'Security Review',
       description: 'Review security and audit logs',
-      icon: Shield,
+      icon: History,
       action: () => navigate('/superadmin/audit-logs')
     }
   ];
