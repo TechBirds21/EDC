@@ -32,6 +32,7 @@ import { PrintableForm } from "./PrintableForm";
 import CommonFormHeader from "./CommonFormHeader";
 import FormNavigation from "./FormNavigation";
 import { useToast } from "@/hooks/use-toast";
+import { useFormSubmission } from "@/hooks/useFormSubmission";
 import { useFormStepper } from "@/hooks/useFormStepper";
 import { pythonApi } from "@/services/api";
 
@@ -129,6 +130,7 @@ const DemographicDetailsPage: React.FC = () => {
   const { pid } = useParams<{ pid: string }>();
   const location = useLocation();
   const { toast } = useToast();
+  const { submitForm, isSubmitting, error: submitError, success: submitSuccess } = useFormSubmission();
 
   const searchParams = new URLSearchParams(location.search);
   const caseId = searchParams.get("case") || "temp-case";
@@ -145,7 +147,7 @@ const DemographicDetailsPage: React.FC = () => {
   /* State */
   const [formData, setFormData] = useState<DemographicData>(defaultFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [volunteerId, setVolunteerId] = useState("");
   const [studyNumber, setStudyNumber] = useState("");
   const [isSaved, setIsSaved] = useState(false);
@@ -240,6 +242,12 @@ const DemographicDetailsPage: React.FC = () => {
 
   /* -------- Save local -------- */
   const handleSaveLocal = useCallback(async () => {
+    // Validate form first
+    if (!validate()) {
+      toast({ title: "Validation Error", description: "Please fill all required fields correctly" });
+      return;
+    }
+    
     // Validate form before saving
     if (!validate()) {
       toast({ title: "Validation Error", description: "Please fill in all required fields correctly." });
@@ -273,6 +281,7 @@ const DemographicDetailsPage: React.FC = () => {
         synced: false,
       });
     }
+    setIsSaved(true);
     
     // Try to save to API
     try {
@@ -311,6 +320,15 @@ const DemographicDetailsPage: React.FC = () => {
 
   /* -------- Print -------- */
   const printForm = () => window.print();
+
+  /* -------- Continue -------- */
+  const handleContinue = async () => {
+    if (!isSaved) {
+      toast({ title: "Error", description: "Please save the form first" });
+      return;
+    }
+    goNext();
+  };
 
   /* ─────────────────────────────────────────── JSX ─────────────────────────────────────────── */
   return (
@@ -831,9 +849,10 @@ const DemographicDetailsPage: React.FC = () => {
           hasNext={hasNext}
           isLastForm={isLastForm}
           onPrevious={goPrevious}
-          onNext={goNext}
+          onNext={handleContinue}
           onSaveLocal={handleSaveLocal}
-          loading={loading}
+          loading={isSubmitting}
+          isSaved={isSaved}
           isSaved={isSaved}
         />
       </div>
