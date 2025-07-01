@@ -12,7 +12,7 @@ export interface FormNavigationProps {
   onSaveLocal: () => Promise<void> | void;
   onPreview?: () => void;
   loading?: boolean;
-  isSaved: boolean;
+  isSaved?: boolean;
 }
 
 const FormNavigation: React.FC<FormNavigationProps> = ({
@@ -24,7 +24,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
   onSaveLocal,
   onPreview,
   loading = false,
-  isSaved,
+  isSaved = false,
 }) => {
   return (
     <Card className="bg-gray-50 border-gray-200">
@@ -34,7 +34,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
           <Button
             variant="outline"
             onClick={onPrevious}
-            disabled={!hasPrevious || loading}
+            className={`bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 ${!isSaved ? 'opacity-50 cursor-not-allowed' : ''}`}
             className="flex items-center space-x-2"
           >
             <ChevronLeft className="w-4 h-4" />

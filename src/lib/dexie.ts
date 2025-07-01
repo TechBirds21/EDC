@@ -9,6 +9,7 @@ export interface PendingForm {
   volunteer_id?: string;
   study_number?: string;
   synced?: boolean;
+  synced?: boolean;
   created_at: Date;
   last_modified: Date;
 }

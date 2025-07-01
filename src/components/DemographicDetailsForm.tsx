@@ -27,13 +27,13 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/dexie";
 import { PrintableForm } from "./PrintableForm";
 import CommonFormHeader from "./CommonFormHeader";
 import FormNavigation from "./FormNavigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFormStepper } from "@/hooks/useFormStepper";
+import { pythonApi } from "@/services/api";
 
 /* ------------ 1. Ordered list of screening routes --------------- */
 /* Re-use this array in every other screening page */
@@ -148,6 +148,7 @@ const DemographicDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [volunteerId, setVolunteerId] = useState("");
   const [studyNumber, setStudyNumber] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
 
   /* -------- Load cached case info & answers -------- */
   useEffect(() => {
@@ -166,7 +167,10 @@ const DemographicDetailsPage: React.FC = () => {
         .equals(caseId)
         .and((f) => f.template_id === "Demographic Details")
         .first();
-      if (saved?.answers) setFormData((p) => ({ ...p, ...saved.answers }));
+      if (saved?.answers) {
+        setFormData((p) => ({ ...p, ...saved.answers }));
+        setIsSaved(saved.synced || false);
+      }
     })().catch(console.error);
   }, [caseId]);
 
@@ -204,17 +208,26 @@ const DemographicDetailsPage: React.FC = () => {
   const update = (field: keyof DemographicData, v: any) => {
     setFormData((p) => ({ ...p, [field]: v }));
     if (field === "dateOfBirth") calcAge(v);
-    if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined! }));
+    if (errors[field]) setErrors((e) => {
+      const newErrors = { ...e };
+      delete newErrors[field];
+      return newErrors;
+    });
+    setIsSaved(false);
   };
   const updateNested = (p: keyof DemographicData, f: string, v: any) =>
-    setFormData((d) => ({ ...d, [p]: { ...(d[p] as any), [f]: v } }));
+    setFormData((d) => {
+      const result = { ...d, [p]: { ...(d[p] as any), [f]: v } };
+      setIsSaved(false);
+      return result;
+    });
 
   /* -------- Validation -------- */
   const validate = () => {
     const e: Record<string, string> = {};
     ["screeningDate", "gender", "maritalStatus", "dateOfBirth", "height", "weight", "literacy", "foodHabits"].forEach(
       (k) => {
-        if (!formData[k]) e[k] = "Required";
+        if (!formData[k as keyof DemographicData]) e[k] = "Required";
       }
     );
     const yr = +formData.age.years;
@@ -227,6 +240,13 @@ const DemographicDetailsPage: React.FC = () => {
 
   /* -------- Save local -------- */
   const handleSaveLocal = useCallback(async () => {
+    // Validate form before saving
+    if (!validate()) {
+      toast({ title: "Validation Error", description: "Please fill in all required fields correctly." });
+      return;
+    }
+    
+    setLoading(true);
     const existing = await db.pending_forms
       .where("patient_id")
       .equals(caseId)
@@ -239,6 +259,7 @@ const DemographicDetailsPage: React.FC = () => {
         volunteer_id: volunteerId,
         study_number: studyNumber,
         last_modified: new Date(),
+        synced: false,
       });
     } else {
       await db.pending_forms.add({
@@ -249,9 +270,43 @@ const DemographicDetailsPage: React.FC = () => {
         study_number: studyNumber,
         created_at: new Date(),
         last_modified: new Date(),
+        synced: false,
       });
     }
-    toast({ title: "Saved Locally" });
+    
+    // Try to save to API
+    try {
+      await pythonApi.createForm({
+        template_id: 'Demographic Details',
+        volunteer_id: volunteerId || '',
+        status: "submitted",
+        data: formData,
+      });
+      
+      // Update local record to mark as synced
+      if (existing) {
+        await db.pending_forms.update(existing.id!, { synced: true });
+      } else {
+        const newRecord = await db.pending_forms
+          .where("patient_id")
+          .equals(caseId)
+          .and((f) => f.template_id === "Demographic Details")
+          .first();
+          
+        if (newRecord) {
+          await db.pending_forms.update(newRecord.id!, { synced: true });
+        }
+      }
+      
+      setIsSaved(true);
+      toast({ title: "Saved", description: "Data saved to server successfully" });
+    } catch (error) {
+      console.error("Error saving to API:", error);
+      toast({ title: "Saved Locally", description: "Could not connect to server, data saved locally" });
+      setIsSaved(true);
+    } finally {
+      setLoading(false);
+    }
   }, [caseId, formData, volunteerId, studyNumber, toast]);
 
   /* -------- Print -------- */
@@ -779,6 +834,7 @@ const DemographicDetailsPage: React.FC = () => {
           onNext={goNext}
           onSaveLocal={handleSaveLocal}
           loading={loading}
+          isSaved={isSaved}
         />
       </div>
     </div>
