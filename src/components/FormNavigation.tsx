@@ -13,7 +13,6 @@ export interface FormNavigationProps {
   onPreview?: () => void;
   loading?: boolean;
   isSaved?: boolean;
-  isSaved?: boolean;
 }
 
 const FormNavigation: React.FC<FormNavigationProps> = ({
@@ -26,7 +25,6 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
   onPreview,
   loading = false,
   isSaved = false,
-  isSaved = false,
 }) => {
   return (
     <Card className="bg-gray-50 border-gray-200">
@@ -34,28 +32,28 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
         <div className="flex items-center justify-between">
           {/* ← Previous */}
           <Button
-            variant={isSaved ? "default" : "outline"}
+            variant="outline"
             onClick={onPrevious}
-            className={`bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 ${!isSaved ? 'opacity-50 cursor-not-allowed' : ''}`}
-            className={`flex items-center space-x-2 ${
-              isSaved ? "bg-green-600 hover:bg-green-700 text-white" : ""
-            }`}
+            disabled={!hasPrevious || loading}
+            className="flex items-center space-x-2"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>{isSaved ? "Saved" : "Save Local"}</span>
+            <span>Previous</span>
           </Button>
 
           {/* Centre Action Group */}
           <div className="flex items-center space-x-3">
             {/* 💾 Save Local */}
             <Button
-              variant="outline"
-              disabled={!hasNext || loading || !isSaved}
+              variant={isSaved ? "default" : "outline"}
+              onClick={onSaveLocal}
               disabled={loading}
-              className="flex items-center space-x-2"
+              className={`flex items-center space-x-2 ${
+                isSaved ? "bg-green-600 hover:bg-green-700 text-white" : ""
+              }`}
             >
               <Save className="w-4 h-4" />
-              <span>Save Local</span>
+              <span>{isSaved ? "Saved" : "Save Local"}</span>
             </Button>
 
             {/* 🖨 Print */}
