@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Printer, Download, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuditLog {
@@ -273,7 +271,10 @@ const AdminAuditLogPage: React.FC = () => {
     <MainLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-foreground">Audit Logs</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Audit Logs</h1>
+            <p className="text-muted-foreground">Track all form field changes and modifications</p>
+          </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={loadAuditLogs}>
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -288,7 +289,6 @@ const AdminAuditLogPage: React.FC = () => {
               Print
             </Button>
           </div>
-          <p className="text-muted-foreground">Track all form field changes and modifications</p>
         </div>
 
         {/* Filters */}
@@ -312,6 +312,9 @@ const AdminAuditLogPage: React.FC = () => {
                   Table View
                 </Button>
               </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="search">Search</Label>
@@ -408,8 +411,7 @@ const AdminAuditLogPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </MainLayout>
   );
