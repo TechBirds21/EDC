@@ -29,83 +29,6 @@ interface RecentForm {
   status: 'draft' | 'submitted' | 'pending';
 }
 
-// Mock data for demo users
-const getMockDashboardData = () => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  const mockRecentForms: RecentForm[] = [
-    {
-      id: 'demo-form-1',
-      template_name: 'COVID-19 Screening Form',
-      volunteer_id: 'VOL-001',
-      study_number: 'STU-2024-001',
-      created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      case_id: 'CASE-001',
-      status: 'submitted'
-    },
-    {
-      id: 'demo-form-2',
-      template_name: 'Medical History Form',
-      volunteer_id: 'VOL-002',
-      study_number: 'STU-2024-002',
-      created_at: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-      case_id: 'CASE-002',
-      status: 'draft'
-    },
-    {
-      id: 'demo-form-3',
-      template_name: 'Demographic Details',
-      volunteer_id: 'VOL-003',
-      study_number: 'STU-2024-003',
-      created_at: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-      case_id: 'CASE-003',
-      status: 'submitted'
-    },
-    {
-      id: 'demo-form-4',
-      template_name: 'Vital Signs',
-      volunteer_id: 'VOL-004',
-      study_number: 'STU-2024-004',
-      created_at: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(), // 8 hours ago
-      case_id: 'CASE-004',
-      status: 'pending'
-    },
-    {
-      id: 'demo-form-5',
-      template_name: 'Subject Check-in',
-      volunteer_id: 'VOL-005',
-      study_number: 'STU-2024-005',
-      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-      case_id: 'CASE-005',
-      status: 'submitted'
-    },
-    {
-      id: 'demo-form-6',
-      template_name: 'ECG Evaluation',
-      volunteer_id: 'VOL-006',
-      study_number: 'STU-2024-006',
-      created_at: new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString(), // 2 days ago
-      case_id: 'CASE-006',
-      status: 'draft'
-    }
-  ];
-
-  const mockStats: DashboardStats = {
-    totalForms: mockRecentForms.length,
-    pendingForms: mockRecentForms.filter(f => f.status === 'draft' || f.status === 'pending').length,
-    completedToday: mockRecentForms.filter(f => {
-      const formDate = new Date(f.created_at);
-      return formDate >= today && f.status === 'submitted';
-    }).length,
-    lastSubmission: mockRecentForms.length > 0 ? 
-      new Date(Math.max(...mockRecentForms.map(f => new Date(f.created_at).getTime()))).toLocaleDateString() : 
-      'Never'
-  };
-
-  return { mockStats, mockRecentForms };
-};
-
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
   const { volunteerData } = useVolunteer();
@@ -129,25 +52,79 @@ const EmployeeDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      if (!user || !volunteerData) return;
-
-      // Check if this is a demo user
-      if (user.id.startsWith('demo-')) {
-        console.log('Loading mock data for demo user with volunteer:', volunteerData);
-        const { mockStats, mockRecentForms } = getMockDashboardData();
-        setStats(mockStats);
-        setRecentForms(mockRecentForms);
+      if (!user || !volunteerData) {
         setLoading(false);
         return;
       }
 
-      // Try to get real data from API for the current volunteer
+      // Always try to get real data from API for any user
       try {
         const formsResponse = await adminApiService.getForms({
           volunteer_id: volunteerData.volunteerId,
           page: 1,
           size: 50
+        });
+
+        if (formsResponse?.data) {
+          const forms: RecentForm[] = formsResponse.data.map((form: any) => ({
+            id: form.id,
+            template_name: form.template_name || 'Unknown Form',
+            volunteer_id: form.volunteer_id,
+            study_number: form.study_number,
+            created_at: form.created_at,
+            case_id: form.case_id || `CASE-${form.id.slice(0, 8)}`,
+            status: form.status
+          }));
+
+          setRecentForms(forms);
+
+          // Calculate stats from real data
+          const today = new Date().toDateString();
+          const completedToday = forms.filter(f => 
+            new Date(f.created_at).toDateString() === today && f.status === 'submitted'
+          ).length;
+
+          const stats: DashboardStats = {
+            totalForms: forms.length,
+            pendingForms: forms.filter(f => f.status === 'draft' || f.status === 'pending').length,
+            completedToday,
+            lastSubmission: forms.length > 0 ? 
+              new Date(Math.max(...forms.map(f => new Date(f.created_at).getTime()))).toLocaleDateString() : 
+              'Never'
+          };
+
+          setStats(stats);
+        } else {
+          // No data found - show empty state
+          setRecentForms([]);
+          setStats({
+            totalForms: 0,
+            pendingForms: 0,
+            completedToday: 0,
+            lastSubmission: 'Never'
+          });
+        }
+      } catch (apiError) {
+        console.warn('Failed to load real data from API:', apiError);
+        // Show empty state instead of falling back to demo data
+        setRecentForms([]);
+        setStats({
+          totalForms: 0,
+          pendingForms: 0,
+          completedToday: 0,
+          lastSubmission: 'Never'
+        });
+        setError('Unable to load dashboard data. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      setError('Failed to load dashboard data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
         });
 
         const forms = formsResponse.items || [];
@@ -308,8 +285,8 @@ const EmployeeDashboard: React.FC = () => {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{stats.pendingForms}</div>
-              <p className="text-xs text-muted-foreground">Not yet synced</p>
+              <div className="text-2xl font-bold">{stats.pendingForms}</div>
+              <p className="text-xs text-muted-foreground">Awaiting completion</p>
             </CardContent>
           </Card>
 
@@ -319,18 +296,18 @@ const EmployeeDashboard: React.FC = () => {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.completedToday}</div>
-              <p className="text-xs text-muted-foreground">Forms submitted</p>
+              <div className="text-2xl font-bold">{stats.completedToday}</div>
+              <p className="text-xs text-muted-foreground">Forms submitted today</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Last Submission</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.lastSubmission}</div>
+              <div className="text-2xl font-bold">{stats.lastSubmission === 'Never' ? 'None' : stats.lastSubmission}</div>
               <p className="text-xs text-muted-foreground">Most recent activity</p>
             </CardContent>
           </Card>
@@ -344,25 +321,25 @@ const EmployeeDashboard: React.FC = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button asChild className="h-20 clinical-gradient text-white">
-                <Link to="/employee/project/clains-project-1/new-claim">
+                <Link to="/employee/projects">
                   <div className="text-center">
                     <FileText className="w-6 h-6 mx-auto mb-2" />
-                    <span>Start New Form</span>
+                    <span>Browse Projects</span>
                   </div>
                 </Link>
               </Button>
               
               <Button variant="outline" asChild className="h-20">
-                <Link to="/employee/forms">
+                <Link to="/employee/projects">
                   <div className="text-center">
                     <Clock className="w-6 h-6 mx-auto mb-2" />
-                    <span>Pending Forms</span>
+                    <span>My Projects</span>
                   </div>
                 </Link>
               </Button>
               
-              <Button variant="outline" asChild className="h-20">
-                <Link to="/employee/history">
+              <Button variant="outline" asChild className="h-20" disabled={recentForms.length === 0}>
+                <Link to="/employee/forms">
                   <div className="text-center">
                     <CheckCircle className="w-6 h-6 mx-auto mb-2" />
                     <span>View History</span>
@@ -373,11 +350,16 @@ const EmployeeDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Records Table - Requirement 1 */}
+        {/* Records Table - Always show UI, even if no data */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>All Records</CardTitle>
+              <div>
+                <CardTitle>All Records</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  View all your project records, volunteer data, and form submissions
+                </p>
+              </div>
               <div className="flex items-center space-x-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -393,8 +375,29 @@ const EmployeeDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             {filteredForms.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchTerm ? 'No records match your search' : 'No records available'}
+              <div className="text-center py-12">
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <h3 className="mt-4 text-lg font-semibold">
+                  {recentForms.length === 0 ? "No records found" : "No matching records"}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {recentForms.length === 0 
+                    ? "You don't have any form records yet. Once you start working on projects and filling forms, they will appear here."
+                    : searchTerm 
+                      ? `No records match your search "${searchTerm}". Try adjusting your search terms.`
+                      : "No records match the current filters."
+                  }
+                </p>
+                {recentForms.length === 0 && (
+                  <div className="mt-6">
+                    <Link to="/employee/projects">
+                      <Button>
+                        <Play className="mr-2 h-4 w-4" />
+                        Browse Available Projects
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="rounded-md border">
@@ -427,14 +430,14 @@ const EmployeeDashboard: React.FC = () => {
                           <div className="flex items-center justify-end space-x-2">
                             {form.status === 'draft' ? (
                               <Button size="sm" asChild>
-                                <Link to={`/employee/project/clains-project-1/forms/${form.case_id}`}>
+                                <Link to={`/employee/projects`}>
                                   <Edit className="w-4 h-4 mr-1" />
                                   Continue
                                 </Link>
                               </Button>
                             ) : (
                               <Button size="sm" variant="outline" asChild>
-                                <Link to={`/employee/project/clains-project-1/forms/${form.case_id}/view`}>
+                                <Link to={`/employee/projects`}>
                                   <FileText className="w-4 h-4 mr-1" />
                                   View
                                 </Link>
@@ -442,7 +445,7 @@ const EmployeeDashboard: React.FC = () => {
                             )}
                             {form.status !== 'submitted' && (
                               <Button size="sm" variant="outline" asChild>
-                                <Link to={`/employee/project/clains-project-1/forms/${form.case_id}/edit`}>
+                                <Link to={`/employee/projects`}>
                                   <Edit className="w-4 h-4 mr-1" />
                                   Edit
                                 </Link>
@@ -463,20 +466,27 @@ const EmployeeDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
+            <p className="text-sm text-muted-foreground">Your most recent form submissions and updates</p>
           </CardHeader>
           <CardContent>
             {recentForms.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">
-                No recent activity
+              <div className="text-center py-8">
+                <Clock className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                <h3 className="mt-4 text-base font-medium">No recent activity</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Your recent form activities will appear here once you start working on projects.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {recentForms.slice(0, 3).map((form) => (
-                  <div key={form.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={form.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="flex items-center space-x-4">
                       <div className={`w-3 h-3 rounded-full ${
                         form.status === 'submitted' ? 'bg-green-500' : 
-                        form.status === 'draft' ? 'bg-yellow-500' : 'bg-orange-500'
+                        form.status === 'draft' ? 'bg-yellow-500' : 
+                        form.status === 'pending' ? 'bg-orange-500' :
+                        'bg-gray-500'
                       }`} />
                       <div>
                         <p className="font-medium">{form.template_name}</p>
@@ -493,6 +503,15 @@ const EmployeeDashboard: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                {recentForms.length > 3 && (
+                  <div className="text-center pt-4">
+                    <Link to="/employee/projects">
+                      <Button variant="outline" size="sm">
+                        View All Activity
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
