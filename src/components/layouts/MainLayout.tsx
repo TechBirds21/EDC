@@ -14,7 +14,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { volunteerData } = useVolunteer();
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex w-full">
       <Sidebar 
         collapsed={sidebarCollapsed} 
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
@@ -23,14 +23,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <Header />
         {volunteerData && (
           <div className="px-6 pt-4">
-            <VolunteerInfo 
-              volunteerId={volunteerData.volunteerId}
-              studyNumber={volunteerData.studyNumber}
-            />
+            <div className="medical-gradient rounded-lg">
+              <VolunteerInfo 
+                volunteerId={volunteerData.volunteerId}
+                studyNumber={volunteerData.studyNumber}
+              />
+            </div>
           </div>
         )}
         <main className="flex-1 p-6">
-          {children}
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
