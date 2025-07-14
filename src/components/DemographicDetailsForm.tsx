@@ -852,7 +852,6 @@ const DemographicDetailsPage: React.FC = () => {
           onSaveLocal={handleSaveLocal}
           loading={isSubmitting}
           isSaved={isSaved}
-          isSaved={isSaved}
         />
       </div>
     </div>

@@ -12,6 +12,8 @@ class Volunteer(Base):
     __tablename__ = "volunteers"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    volunteer_id = Column(String, unique=True, nullable=False, index=True)
+    study_number = Column(String, nullable=False, index=True)
     screening_date = Column(Date, nullable=True)
     dob = Column(Date, nullable=True)
     gender = Column(String, nullable=True)
