@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
-import { ChevronLeft, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
+import CommonFormNavigation from '@/components/CommonFormNavigation';
+import FormDateTimeFooter from '@/components/FormDateTimeFooter';
 
 interface ECGData {
   ecgDate: string;
@@ -296,47 +298,18 @@ const EcgPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between items-center pt-6 no-print">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handlePrevious}
-              className="flex items-center space-x-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
-            </Button>
-            <div className="flex space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => window.print()}
-                className="flex items-center space-x-2"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print</span>
-              </Button>
-              <Button
-                type="button"
-                onClick={handleSave}
-                disabled={loading}
-                className={`${isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-              >
-                {loading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
-              </Button>
-              <Button
-                type="button"
-                onClick={handleContinue}
-                disabled={!isSaved}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-              >
-                Continue
-              </Button>
-            </div>
-          </div>
+          <CommonFormNavigation
+            onPrevious={handlePrevious}
+            onSaveLocal={handleSave}
+            onContinue={handleContinue}
+            loading={loading}
+            isSaved={isSaved}
+            showPrint={true}
+          />
         </CardContent>
       </Card>
+      
+      <FormDateTimeFooter />
     </PrintableForm>
   );
 };

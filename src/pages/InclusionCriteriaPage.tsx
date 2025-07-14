@@ -6,7 +6,7 @@ import { PrintableForm } from '@/components/PrintableForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronLeft, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import CommonFormNavigation from '@/components/CommonFormNavigation';
 import FormDateTimeFooter from '@/components/FormDateTimeFooter';
 
