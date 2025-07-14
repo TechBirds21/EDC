@@ -98,6 +98,67 @@ export const formsApi = {
     if (error) return handleError(error);
     return data;
   },
+
+  createForm: async (formData: any) => {
+    const { data, error } = await supabase
+      .from('patient_forms')
+      .insert([formData])
+      .select();
+      
+    if (error) return handleError(error);
+    return data?.[0];
+  },
+
+  updateForm: async (id: string, formData: any) => {
+    const { data, error } = await supabase
+      .from('patient_forms')
+      .update(formData)
+      .eq('id', id)
+      .select();
+      
+    if (error) return handleError(error);
+    return data?.[0];
+  },
+
+  // Save form data with template reference
+  saveFormData: async (templateId: string, formData: Record<string, any>, metadata: any = {}) => {
+    const payload = {
+      template_id: templateId,
+      form_data: formData,
+      volunteer_id: metadata.volunteer_id || null,
+      study_number: metadata.study_number || null,
+      template_name: metadata.template_name || null,
+      status: metadata.status || 'draft',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('patient_forms')
+      .insert([payload])
+      .select();
+      
+    if (error) return handleError(error);
+    return data?.[0];
+  },
+
+  // Update existing form data
+  updateFormData: async (formId: string, formData: Record<string, any>, reason?: string) => {
+    const payload = {
+      form_data: formData,
+      updated_at: new Date().toISOString(),
+      ...(reason && { update_reason: reason })
+    };
+
+    const { data, error } = await supabase
+      .from('patient_forms')
+      .update(payload)
+      .eq('id', formId)
+      .select();
+      
+    if (error) return handleError(error);
+    return data?.[0];
+  },
   
   searchForms: async (searchTerm: string) => {
     const { data, error } = await supabase
