@@ -1,390 +1,19 @@
-import { supabase } from '@/integrations/supabase/client';
-
 // Helper function to handle errors
 const handleError = (error: any) => {
   console.error('API Error:', error);
   throw error;
 };
 
-// Form Templates API
-export const formTemplateApi = {
-  getTemplates: async () => {
-    const { data, error } = await supabase
-      .from('form_templates')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (error) return handleError(error);
-    return data || [];
-  },
-  
-  getTemplateById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('form_templates')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) return handleError(error);
-    return data;
-  },
-  
-  createTemplate: async (template: any) => {
-    const { data, error } = await supabase
-      .from('form_templates')
-      .insert([template])
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  },
-  
-  updateTemplate: async (id: string, template: any) => {
-    const { data, error } = await supabase
-      .from('form_templates')
-      .update(template)
-      .eq('id', id)
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  },
-  
-  deleteTemplate: async (id: string) => {
-    const { error } = await supabase
-      .from('form_templates')
-      .delete()
-      .eq('id', id);
-      
-    if (error) return handleError(error);
-    return true;
-  }
-};
-
-// Forms API
-export const formsApi = {
-  getForms: async (filters: any = {}) => {
-    let query = supabase
-      .from('patient_forms')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    // Apply filters
-    if (filters.volunteer_id) {
-      query = query.eq('volunteer_id', filters.volunteer_id);
-    }
-    
-    if (filters.template_name) {
-      query = query.eq('template_name', filters.template_name);
-    }
-    
-    if (filters.study_number) {
-      query = query.eq('study_number', filters.study_number);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) return handleError(error);
-    return data || [];
-  },
-  
-  getFormById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) return handleError(error);
-    return data;
-  },
-
-  createForm: async (formData: any) => {
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .insert([formData])
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  },
-
-  updateForm: async (id: string, formData: any) => {
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .update(formData)
-      .eq('id', id)
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  },
-
-  // Save form data with template reference
-  saveFormData: async (templateId: string, formData: Record<string, any>, metadata: any = {}) => {
-    const payload = {
-      template_id: templateId,
-      form_data: formData,
-      volunteer_id: metadata.volunteer_id || null,
-      study_number: metadata.study_number || null,
-      template_name: metadata.template_name || null,
-      status: metadata.status || 'draft',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .insert([payload])
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  },
-
-  // Update existing form data
-  updateFormData: async (formId: string, formData: Record<string, any>, reason?: string) => {
-    const payload = {
-      form_data: formData,
-      updated_at: new Date().toISOString(),
-      ...(reason && { update_reason: reason })
-    };
-
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .update(payload)
-      .eq('id', formId)
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  },
-  
-  searchForms: async (searchTerm: string) => {
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .select('*')
-      .or(`volunteer_id.ilike.%${searchTerm}%,study_number.ilike.%${searchTerm}%,template_name.ilike.%${searchTerm}%`)
-      .order('created_at', { ascending: false });
-      
-    if (error) return handleError(error);
-    return data || [];
-  }
-};
-
-// Volunteers API
-export const volunteersApi = {
-  getVolunteers: async () => {
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .select('volunteer_id, study_number')
-      .order('created_at', { ascending: false });
-      
-    if (error) return handleError(error);
-    
-    // Extract unique volunteers
-    const uniqueVolunteers = new Map();
-    data?.forEach(item => {
-      if (!uniqueVolunteers.has(item.volunteer_id)) {
-        uniqueVolunteers.set(item.volunteer_id, {
-          id: item.volunteer_id,
-          study_number: item.study_number
-        });
-      }
-    });
-    
-    return Array.from(uniqueVolunteers.values());
-  },
-  
-  getVolunteerById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('patient_forms')
-      .select('*')
-      .eq('volunteer_id', id)
-      .order('created_at', { ascending: false });
-      
-    if (error) return handleError(error);
-    
-    // Extract volunteer info from forms
-    if (data && data.length > 0) {
-      const volunteerInfo = {
-        id: data[0].volunteer_id,
-        study_number: data[0].study_number,
-        forms: data
-      };
-      
-      return volunteerInfo;
-    }
-    
-    return null;
-  }
-};
-
-// Users API
-export const usersApi = {
-  getUsers: async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (error) return handleError(error);
-    return data || [];
-  },
-  
-  getUserById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) return handleError(error);
-    return data;
-  },
-  
-  updateUser: async (id: string, updates: any) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', id)
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  }
-};
-
-// Clients API
-export const clientsApi = {
-  getClients: async () => {
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (error) return handleError(error);
-    return data || [];
-  },
-  
-  getClientById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error) return handleError(error);
-    return data;
-  },
-  
-  createClient: async (client: any) => {
-    // Get the current user
-    const { data: userData } = await supabase.auth.getUser();
-    
-    // Use RPC function to bypass RLS
-    const { data, error } = await supabase
-      .rpc('admin_create_client', {
-        client_name: client.name,
-        client_description: client.description || '',
-        client_email: client.contact_email,
-        client_status: client.status,
-        user_id: userData.user?.id
-      });
-      
-    if (error) return handleError(error);
-    return data;
-  },
-  
-  updateClient: async (id: string, client: any) => {
-    const { data, error } = await supabase
-      .from('clients')
-      .update(client)
-      .eq('id', id)
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  },
-  
-  deleteClient: async (id: string) => {
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', id);
-      
-    if (error) return handleError(error);
-    return true;
-  }
-};
-
-// Audit Logs API
-export const auditLogsApi = {
-  getLogs: async (filters: any = {}) => {
-    let query = supabase
-      .from('activity_logs')
-      .select('*, profiles(email)')
-      .order('created_at', { ascending: false });
-    
-    // Apply filters with proper null checks
-    if (filters.user_id) {
-      query = query.eq('user_id', filters.user_id);
-    }
-    
-    if (filters.action) {
-      query = query.eq('action', filters.action);
-    }
-    
-    if (filters.resource_type) {
-      query = query.eq('resource_type', filters.resource_type);
-    }
-    
-    if (filters.start_date) {
-      query = query.gte('created_at', filters.start_date);
-    }
-    
-    if (filters.end_date) {
-      query = query.lte('created_at', filters.end_date);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) return handleError(error);
-    
-    // Format the data to include user_email with proper null checks
-    const formattedData = data?.map(log => ({
-      ...log,
-      user_email: log.profiles?.email || 'Unknown'
-    })) || [];
-    
-    return formattedData;
-  },
-  
-  createLog: async (log: any) => {
-    const { data, error } = await supabase
-      .from('activity_logs')
-      .insert([log])
-      .select();
-      
-    if (error) return handleError(error);
-    return data?.[0];
-  }
-};
-
-// Python API integration
+// Python API integration (PostgreSQL backend)
 export const pythonApi = {
   baseUrl: process.env.NODE_ENV === 'production' 
     ? 'https://api.clinicalcapture.com/api' 
     : 'http://localhost:8000/api',
     
   async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-    // Get the current session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Set default headers
+    // Set default headers (removed Supabase auth)
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session?.access_token || ''}`,
       ...options.headers
     };
     
@@ -408,7 +37,7 @@ export const pythonApi = {
     return await response.json();
   },
   
-  // Volunteers with proper null checks
+  // Volunteers
   getVolunteers: async (page = 1, size = 20) => {
     return pythonApi.fetchWithAuth(`/volunteers?page=${page}&size=${size}`);
   },
@@ -431,7 +60,7 @@ export const pythonApi = {
     });
   },
   
-  // Form Templates with proper null checks
+  // Form Templates
   getFormTemplates: async (page = 1, size = 20, name?: string) => {
     let url = `/form-templates?page=${page}&size=${size}`;
     if (name) url += `&name=${encodeURIComponent(name)}`;
@@ -456,7 +85,7 @@ export const pythonApi = {
     });
   },
   
-  // Forms with proper null checks
+  // Forms
   getForms: async (page = 1, size = 20, filters: any = {}) => {
     let url = `/forms?page=${page}&size=${size}`;
     
@@ -505,12 +134,12 @@ export const pythonApi = {
     });
   },
   
-  // Change Log with proper null checks
+  // Change Log
   getChangeLogs: async (formId: string, page = 1, size = 20) => {
     return pythonApi.fetchWithAuth(`/change-log/${formId}?page=${page}&size=${size}`);
   },
   
-  // Table/Matrix specific APIs with proper null checks
+  // Table/Matrix specific APIs
   addTableRow: async (formId: string, fieldPath: string, rowData: any, reason: string) => {
     return pythonApi.fetchWithAuth(`/forms/${formId}/table-row`, {
       method: 'POST',
@@ -532,6 +161,165 @@ export const pythonApi = {
         value,
         reason
       })
+    });
+  }
+};
+
+// Form Templates API (using PostgreSQL)
+export const formTemplateApi = {
+  getTemplates: async () => {
+    return await pythonApi.getFormTemplates();
+  },
+  
+  getTemplateById: async (id: string) => {
+    return await pythonApi.getFormTemplateById(id);
+  },
+  
+  createTemplate: async (template: any) => {
+    return await pythonApi.createFormTemplate(template);
+  },
+  
+  updateTemplate: async (id: string, template: any) => {
+    return await pythonApi.updateFormTemplate(id, template);
+  },
+  
+  deleteTemplate: async (id: string) => {
+    // Implement delete via Python API if needed
+    return await pythonApi.fetchWithAuth(`/form-templates/${id}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// Forms API (using PostgreSQL)
+export const formsApi = {
+  getForms: async (filters: any = {}) => {
+    return await pythonApi.getForms(1, 100, filters);
+  },
+  
+  getFormById: async (id: string) => {
+    return await pythonApi.getFormById(id);
+  },
+
+  createForm: async (formData: any) => {
+    return await pythonApi.createForm(formData);
+  },
+
+  updateForm: async (id: string, formData: any) => {
+    return await pythonApi.updateForm(id, formData);
+  },
+
+  // Save form data with template reference
+  saveFormData: async (templateId: string, formData: Record<string, any>, metadata: any = {}) => {
+    const payload = {
+      template_id: templateId,
+      data: formData,
+      volunteer_id: metadata.volunteer_id || null,
+      study_number: metadata.study_number || null,
+      status: metadata.status || 'draft',
+    };
+
+    return await pythonApi.createForm(payload);
+  },
+
+  // Update existing form data
+  updateFormData: async (formId: string, formData: Record<string, any>, reason?: string) => {
+    const payload = {
+      data: formData,
+      ...(reason && { update_reason: reason })
+    };
+
+    return await pythonApi.updateForm(formId, payload);
+  },
+  
+  searchForms: async (searchTerm: string) => {
+    // Implement search via Python API if needed
+    return await pythonApi.getForms(1, 100, { search: searchTerm });
+  }
+};
+
+// Volunteers API (using PostgreSQL)
+export const volunteersApi = {
+  getVolunteers: async () => {
+    return await pythonApi.getVolunteers();
+  },
+  
+  getVolunteerById: async (id: string) => {
+    return await pythonApi.getVolunteerById(id);
+  }
+};
+
+// Users API (using PostgreSQL)
+export const usersApi = {
+  getUsers: async () => {
+    // Implement via Python API if needed
+    return await pythonApi.fetchWithAuth('/users');
+  },
+  
+  getUserById: async (id: string) => {
+    return await pythonApi.fetchWithAuth(`/users/${id}`);
+  },
+  
+  updateUser: async (id: string, updates: any) => {
+    return await pythonApi.fetchWithAuth(`/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    });
+  }
+};
+
+// Clients API (using PostgreSQL)
+export const clientsApi = {
+  getClients: async () => {
+    return await pythonApi.fetchWithAuth('/clients');
+  },
+  
+  getClientById: async (id: string) => {
+    return await pythonApi.fetchWithAuth(`/clients/${id}`);
+  },
+  
+  createClient: async (client: any) => {
+    return await pythonApi.fetchWithAuth('/clients', {
+      method: 'POST',
+      body: JSON.stringify(client)
+    });
+  },
+  
+  updateClient: async (id: string, client: any) => {
+    return await pythonApi.fetchWithAuth(`/clients/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(client)
+    });
+  },
+  
+  deleteClient: async (id: string) => {
+    return await pythonApi.fetchWithAuth(`/clients/${id}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// Audit Logs API (using PostgreSQL)
+export const auditLogsApi = {
+  getLogs: async (filters: any = {}) => {
+    let url = '/audit-logs';
+    const params = new URLSearchParams();
+    
+    if (filters.user_id) params.append('user_id', filters.user_id);
+    if (filters.action) params.append('action', filters.action);
+    if (filters.resource_type) params.append('resource_type', filters.resource_type);
+    if (filters.start_date) params.append('start_date', filters.start_date);
+    if (filters.end_date) params.append('end_date', filters.end_date);
+    
+    if (params.toString()) url += `?${params.toString()}`;
+    
+    return await pythonApi.fetchWithAuth(url);
+  },
+  
+  createLog: async (log: any) => {
+    return await pythonApi.fetchWithAuth('/audit-logs', {
+      method: 'POST',
+      body: JSON.stringify(log)
     });
   }
 };

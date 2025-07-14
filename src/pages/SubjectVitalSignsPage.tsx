@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { PrintableForm } from '@/components/PrintableForm';
-import { supabase } from '@/integrations/supabase/client';
 
 interface VitalSignEntry {
   date: string;

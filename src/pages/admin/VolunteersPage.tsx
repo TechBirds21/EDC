@@ -13,7 +13,6 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Search, Users, UserPlus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface Volunteer {

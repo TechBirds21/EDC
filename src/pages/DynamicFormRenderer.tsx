@@ -6,7 +6,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import CommonFormHeader  from '@/components/CommonFormHeader';
 import  FormNavigation  from '@/components/FormNavigation';
-import { supabase } from '@/integrations/supabase/client';
 import { JsonSchema, renderField } from '@/utils/formHelpers';
 import { db } from '@/lib/dexie';
 import { useProjectMenu } from '@/hooks/useProjectMenu';

@@ -1,6 +1,5 @@
 
 import React, { createContext, useContext, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface VolunteerData {

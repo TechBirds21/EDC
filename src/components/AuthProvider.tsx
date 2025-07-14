@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
 import { AuthContext } from '@/contexts/AuthContext';
 import { AuthUser, UserRole } from '@/types/auth';
-import { fetchUserProfile } from '@/services/profileService';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -11,131 +8,111 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
+    // Simplified auth initialization - check localStorage for persisted session
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
-        if (mounted) {
-          setSession(initialSession);
-          if (initialSession?.user) {
-            await updateUserProfile(initialSession.user);
-          }
-          setLoading(false);
+        const savedUser = localStorage.getItem('auth_user');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+          setSession({ user: userData });
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-
-        console.log('Auth state change:', event, session?.user?.email);
-        setSession(session);
-        
-        if (session?.user) {
-          await updateUserProfile(session.user);
-        } else {
-          setUser(null);
-        }
+      } finally {
         setLoading(false);
       }
-    );
+    };
 
     initializeAuth();
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
   }, []);
-
-  const updateUserProfile = async (authUser: User) => {
-    try {
-      // Try to fetch user profile from our backend
-      const profile = await fetchUserProfile(authUser.id);
-      
-      const userRole: UserRole = profile?.role as UserRole || 
-                                 authUser.user_metadata?.role as UserRole || 
-                                 'employee';
-      
-      setUser({ 
-        id: authUser.id,
-        email: authUser.email || '',
-        role: userRole,
-        firstName: profile?.first_name || authUser.user_metadata?.first_name || '',
-        lastName: profile?.last_name || authUser.user_metadata?.last_name || ''
-      });
-
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      // Fallback to basic user with data from auth metadata
-      setUser({ 
-        id: authUser.id,
-        email: authUser.email || '',
-        role: (authUser.user_metadata?.role as UserRole) || 'employee',
-        firstName: authUser.user_metadata?.first_name || '',
-        lastName: authUser.user_metadata?.last_name || ''
-      });
-    }
-  };
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      // Simplified demo login - in production this would call your API
       console.log('Attempting sign in for:', email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      console.log('Supabase sign in result:', { user: data.user?.email, error: error?.message });
-      
-      setLoading(false);
-      return { error };
+      // Demo users for testing
+      const demoUsers: Record<string, { password: string; role: UserRole; first_name: string; last_name: string }> = {
+        'admin@test.com': { password: 'admin123', role: 'admin', first_name: 'Admin', last_name: 'User' },
+        'employee@test.com': { password: 'employee123', role: 'employee', first_name: 'Employee', last_name: 'User' },
+        'super@test.com': { password: 'super123', role: 'super_admin', first_name: 'Super', last_name: 'Admin' }
+      };
+
+      const demoUser = demoUsers[email];
+      if (demoUser && demoUser.password === password) {
+        const userData: AuthUser = {
+          id: Math.random().toString(36).substr(2, 9),
+          email,
+          role: demoUser.role,
+          profile: {
+            id: Math.random().toString(36).substr(2, 9),
+            email,
+            first_name: demoUser.first_name,
+            last_name: demoUser.last_name,
+            role: demoUser.role,
+            status: 'active'
+          }
+        };
+        
+        setUser(userData);
+        setSession({ user: userData });
+        localStorage.setItem('auth_user', JSON.stringify(userData));
+        
+        setLoading(false);
+        return { error: null };
+      } else {
+        setLoading(false);
+        return { error: { message: 'Invalid credentials' } };
+      }
     } catch (err) {
       console.error('Sign in error:', err);
       setLoading(false);
-      return { error: err as AuthError };
+      return { error: err };
     }
   };
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          role: 'employee'
+    // Simplified signup - in production this would call your API
+    try {
+      const userData: AuthUser = {
+        id: Math.random().toString(36).substr(2, 9),
+        email,
+        role: 'employee',
+        profile: {
+          id: Math.random().toString(36).substr(2, 9),
+          email,
+          first_name: '',
+          last_name: '',
+          role: 'employee',
+          status: 'active'
         }
-      }
-    });
-    
-    setLoading(false);
-    return { error };
+      };
+      
+      setUser(userData);
+      setSession({ user: userData });
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+      
+      setLoading(false);
+      return { error: null };
+    } catch (err) {
+      setLoading(false);
+      return { error: err };
+    }
   };
 
   const signOut = async () => {
     setLoading(true);
     
-    // Sign out from Supabase
-    await supabase.auth.signOut();
-    
     setUser(null);
     setSession(null);
+    localStorage.removeItem('auth_user');
     setLoading(false);
   };
 

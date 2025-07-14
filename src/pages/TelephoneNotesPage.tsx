@@ -5,7 +5,6 @@ import { SignatureFields } from '../components/SignatureFields';
 import type { SignatureData } from '../types/common';
 import { useVolunteer } from '../context/VolunteerContext';
 import { formDataCollector } from '../services/formDataCollector';
-import { supabase } from '../lib/supabase';
 import { useGlobalForm } from '../context/GlobalFormContext';
 import { volunteerService } from '../services/volunteerService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
