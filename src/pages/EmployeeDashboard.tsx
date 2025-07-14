@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, AlertCircle, UserCheck, Calendar } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, UserCheck, Calendar, Edit, Play, Search } from 'lucide-react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVolunteer } from '@/context/VolunteerContext';
 import { adminApiService } from '@/services/adminApiService';
@@ -24,6 +26,7 @@ interface RecentForm {
   study_number: string;
   created_at: string;
   case_id: string;
+  status: 'draft' | 'submitted' | 'pending';
 }
 
 // Mock data for demo users
@@ -38,7 +41,8 @@ const getMockDashboardData = () => {
       volunteer_id: 'VOL-001',
       study_number: 'STU-2024-001',
       created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      case_id: 'CASE-001'
+      case_id: 'CASE-001',
+      status: 'submitted'
     },
     {
       id: 'demo-form-2',
@@ -46,23 +50,57 @@ const getMockDashboardData = () => {
       volunteer_id: 'VOL-002',
       study_number: 'STU-2024-002',
       created_at: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-      case_id: 'CASE-002'
+      case_id: 'CASE-002',
+      status: 'draft'
     },
     {
       id: 'demo-form-3',
-      template_name: 'Vital Signs Assessment',
+      template_name: 'Demographic Details',
       volunteer_id: 'VOL-003',
       study_number: 'STU-2024-003',
-      created_at: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
-      case_id: 'CASE-003'
+      created_at: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+      case_id: 'CASE-003',
+      status: 'submitted'
+    },
+    {
+      id: 'demo-form-4',
+      template_name: 'Vital Signs',
+      volunteer_id: 'VOL-004',
+      study_number: 'STU-2024-004',
+      created_at: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(), // 8 hours ago
+      case_id: 'CASE-004',
+      status: 'pending'
+    },
+    {
+      id: 'demo-form-5',
+      template_name: 'Subject Check-in',
+      volunteer_id: 'VOL-005',
+      study_number: 'STU-2024-005',
+      created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+      case_id: 'CASE-005',
+      status: 'submitted'
+    },
+    {
+      id: 'demo-form-6',
+      template_name: 'ECG Evaluation',
+      volunteer_id: 'VOL-006',
+      study_number: 'STU-2024-006',
+      created_at: new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString(), // 2 days ago
+      case_id: 'CASE-006',
+      status: 'draft'
     }
   ];
 
   const mockStats: DashboardStats = {
-    totalForms: 15,
-    pendingForms: 2,
-    completedToday: 3,
-    lastSubmission: '2 hr ago'
+    totalForms: mockRecentForms.length,
+    pendingForms: mockRecentForms.filter(f => f.status === 'draft' || f.status === 'pending').length,
+    completedToday: mockRecentForms.filter(f => {
+      const formDate = new Date(f.created_at);
+      return formDate >= today && f.status === 'submitted';
+    }).length,
+    lastSubmission: mockRecentForms.length > 0 ? 
+      new Date(Math.max(...mockRecentForms.map(f => new Date(f.created_at).getTime()))).toLocaleDateString() : 
+      'Never'
   };
 
   return { mockStats, mockRecentForms };
@@ -80,6 +118,7 @@ const EmployeeDashboard: React.FC = () => {
   const [recentForms, setRecentForms] = useState<RecentForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (user && volunteerData) {
@@ -164,6 +203,22 @@ const EmployeeDashboard: React.FC = () => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'submitted': return 'bg-green-100 text-green-800';
+      case 'draft': return 'bg-yellow-100 text-yellow-800';
+      case 'pending': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const filteredForms = recentForms.filter(form => 
+    form.volunteer_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    form.study_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    form.template_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    form.case_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -318,22 +373,111 @@ const EmployeeDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Forms */}
+        {/* Records Table - Requirement 1 */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Forms</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>All Records</CardTitle>
+              <div className="flex items-center space-x-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search records..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 w-64"
+                  />
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredForms.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? 'No records match your search' : 'No records available'}
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Volunteer ID</TableHead>
+                      <TableHead>Study Number</TableHead>
+                      <TableHead>Case ID</TableHead>
+                      <TableHead>Form Template</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Last Modified</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredForms.map((form) => (
+                      <TableRow key={form.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{form.volunteer_id}</TableCell>
+                        <TableCell>{form.study_number}</TableCell>
+                        <TableCell>{form.case_id}</TableCell>
+                        <TableCell>{form.template_name}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(form.status)}>
+                            {form.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatDateTime(form.created_at)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            {form.status === 'draft' ? (
+                              <Button size="sm" asChild>
+                                <Link to={`/employee/project/clains-project-1/forms/${form.case_id}`}>
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Continue
+                                </Link>
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" asChild>
+                                <Link to={`/employee/project/clains-project-1/forms/${form.case_id}/view`}>
+                                  <FileText className="w-4 h-4 mr-1" />
+                                  View
+                                </Link>
+                              </Button>
+                            )}
+                            {form.status !== 'submitted' && (
+                              <Button size="sm" variant="outline" asChild>
+                                <Link to={`/employee/project/clains-project-1/forms/${form.case_id}/edit`}>
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Edit
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             {recentForms.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
-                No forms submitted yet
+                No recent activity
               </div>
             ) : (
               <div className="space-y-4">
-                {recentForms.map((form) => (
+                {recentForms.slice(0, 3).map((form) => (
                   <div key={form.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-4">
-                      <div className="w-3 h-3 rounded-full bg-green-500" />
+                      <div className={`w-3 h-3 rounded-full ${
+                        form.status === 'submitted' ? 'bg-green-500' : 
+                        form.status === 'draft' ? 'bg-yellow-500' : 'bg-orange-500'
+                      }`} />
                       <div>
                         <p className="font-medium">{form.template_name}</p>
                         <p className="text-sm text-muted-foreground">
@@ -342,8 +486,10 @@ const EmployeeDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium">Completed</p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(form.created_at)}</p>
+                      <Badge className={getStatusColor(form.status)}>
+                        {form.status}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground mt-1">{formatDateTime(form.created_at)}</p>
                     </div>
                   </div>
                 ))}
