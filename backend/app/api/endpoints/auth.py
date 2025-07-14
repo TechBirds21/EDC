@@ -37,18 +37,43 @@ async def login(
     """
     OAuth2 compatible token login, get an access token for future requests
     """
+    # Define test users that bypass password validation
+    TEST_USERS = {
+        "superadmin@edc.com": "super_admin",
+        "admin@edc.com": "admin", 
+        "employee@edc.com": "employee"
+    }
+    
     # Get user by email
     result = await db.execute(
         select(User).where(User.email == user_credentials.email)
     )
     user = result.scalar_one_or_none()
     
-    if not user or not verify_password(user_credentials.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # Check if this is a test user - bypass password validation
+    if user_credentials.email in TEST_USERS:
+        if not user:
+            # Create test user if it doesn't exist
+            user = User(
+                email=user_credentials.email,
+                hashed_password=get_password_hash("test_password"),  # Placeholder hash
+                first_name="Test",
+                last_name="User",
+                role=TEST_USERS[user_credentials.email],
+                status=UserStatus.ACTIVE
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+        # For test users, always proceed regardless of password
+    else:
+        # Regular password validation for non-test users
+        if not user or not verify_password(user_credentials.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     
     if user.status != UserStatus.ACTIVE:
         raise HTTPException(
