@@ -1,33 +1,49 @@
 [tool.poetry]
-name = "clinical-capture-api"
-version = "0.1.0"
-description = "FastAPI backend for Clinical Capture application"
-authors = ["Your Name <your.email@example.com>"]
+name = "edc-api"
+version = "1.0.0"
+description = "Electronic Data Capture (EDC) API - Production Ready"
+authors = ["EDC Team <team@edc.com>"]
 readme = "README.md"
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = "^0.110.0"
-uvicorn = "^0.27.1"
-pydantic = "^2.6.3"
+uvicorn = {extras = ["standard"], version = "^0.27.1"}
+pydantic = {extras = ["email"], version = "^2.6.3"}
 pydantic-settings = "^2.2.1"
 sqlalchemy = "^2.0.27"
 asyncpg = "^0.29.0"
 alembic = "^1.13.1"
-supabase = "^2.3.4"
-python-jose = "^3.3.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 python-multipart = "^0.0.9"
 httpx = "^0.27.0"
-passlib = "^1.7.4"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 bcrypt = "^4.1.2"
+
+# Production security and utilities
+email-validator = "^2.1.0"
+python-slugify = "^8.0.1"
+jinja2 = "^3.1.3"
+
+# PDF generation (optional - comment out if not using)
+# pdfkit = "^1.0.0"  # Requires wkhtmltopdf
+# weasyprint = "^60.2"  # Alternative PDF generator
+# reportlab = "^4.0.8"  # Programmatic PDF generation
+
+# Monitoring and logging (optional)
+structlog = "^23.2.0"
+rich = "^13.7.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pytest-asyncio = "^0.23.5"
+pytest-cov = "^4.0.0"
 black = "^24.2.0"
 isort = "^5.13.2"
 mypy = "^1.8.0"
 ruff = "^0.2.2"
+pre-commit = "^3.6.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -36,10 +52,29 @@ build-backend = "poetry.core.masonry.api"
 [tool.black]
 line-length = 88
 target-version = ["py310"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
 
 [tool.isort]
 profile = "black"
 line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
 
 [tool.mypy]
 python_version = "3.10"
@@ -47,7 +82,37 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
 
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=app --cov-report=term-missing --cov-report=html"
+asyncio_mode = "auto"
