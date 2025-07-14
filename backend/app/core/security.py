@@ -25,7 +25,9 @@ class User(BaseModel):
 
 
 def create_access_token(
-    subject: Union[str, Any], expires_delta: timedelta = None
+    subject: Union[str, Any], 
+    role: str = "employee",
+    expires_delta: timedelta = None
 ) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -33,7 +35,7 @@ def create_access_token(
         expire = datetime.utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode = {"exp": expire, "sub": str(subject), "role": role}
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
@@ -85,18 +87,19 @@ class JWTAuth(HTTPBearer):
                 )
                 
             user_id = payload.get("sub")
+            user_role = payload.get("role", "employee")
+            
             if user_id is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token payload",
                 )
                 
-            # For now, we'll create a basic user object
-            # In production, you'd fetch user details from database
+            # Store user information in request state
             request.state.user = User(
                 id=user_id, 
-                email=f"user_{user_id}@example.com",
-                role="employee"  # Default role
+                email=f"user_{user_id}@example.com",  # Will be replaced with actual user fetch
+                role=user_role
             )
             
             return credentials
