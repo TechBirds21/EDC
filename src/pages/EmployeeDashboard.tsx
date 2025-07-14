@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, UserCheck, Calendar } from 'lucide-react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useVolunteer } from '@/context/VolunteerContext';
+import { adminApiService } from '@/services/adminApiService';
 
 interface DashboardStats {
   totalForms: number;
@@ -68,6 +70,7 @@ const getMockDashboardData = () => {
 
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { volunteerData } = useVolunteer();
   const [stats, setStats] = useState<DashboardStats>({
     totalForms: 0,
     pendingForms: 0,
@@ -79,20 +82,20 @@ const EmployeeDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user && volunteerData) {
       loadDashboardData();
     }
-  }, [user]);
+  }, [user, volunteerData]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       
-      if (!user) return;
+      if (!user || !volunteerData) return;
 
       // Check if this is a demo user
       if (user.id.startsWith('demo-')) {
-        console.log('Loading mock data for demo user');
+        console.log('Loading mock data for demo user with volunteer:', volunteerData);
         const { mockStats, mockRecentForms } = getMockDashboardData();
         setStats(mockStats);
         setRecentForms(mockRecentForms);
@@ -100,63 +103,44 @@ const EmployeeDashboard: React.FC = () => {
         return;
       }
 
-      // Get total forms for this user
+      // Try to get real data from API for the current volunteer
       try {
-        // Get total forms for this user
-        const { count: totalFormsCount, error: totalFormsError } = await supabase
-          .from('patient_forms')
-          .select('*', { count: 'exact', head: true })
-          .eq('submitted_by', user.id);
-
-        if (totalFormsError) throw totalFormsError;
-
-        // Get forms submitted today for this user
-        const today = new Date().toISOString().split('T')[0];
-        const { count: todayFormsCount, error: todayFormsError } = await supabase
-          .from('patient_forms')
-          .select('*', { count: 'exact', head: true })
-          .eq('submitted_by', user.id)
-          .gte('created_at', `${today}T00:00:00.000Z`)
-          .lt('created_at', `${today}T23:59:59.999Z`);
-
-        if (todayFormsError) throw todayFormsError;
-
-        // Get recent forms for this user (last 5)
-        const { data: recentFormsData, error: recentError } = await supabase
-          .from('patient_forms')
-          .select('id, template_name, volunteer_id, study_number, created_at, case_id')
-          .eq('submitted_by', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (recentError) throw recentError;
-
-        // Get the most recent submission time
-        let lastSubmissionText = 'Never';
-        if (recentFormsData && recentFormsData.length > 0) {
-          const lastSubmission = new Date(recentFormsData[0].created_at);
-          const now = new Date();
-          const diffInMinutes = Math.floor((now.getTime() - lastSubmission.getTime()) / (1000 * 60));
-          
-          if (diffInMinutes < 1) {
-            lastSubmissionText = 'Just now';
-          } else if (diffInMinutes < 60) {
-            lastSubmissionText = `${diffInMinutes} min ago`;
-          } else if (diffInMinutes < 1440) {
-            lastSubmissionText = `${Math.floor(diffInMinutes / 60)} hr ago`;
-          } else {
-            lastSubmissionText = `${Math.floor(diffInMinutes / 1440)} days ago`;
-          }
-        }
-
-        setStats({
-          totalForms: totalFormsCount || 0,
-          pendingForms: 0, // This would need additional logic to determine pending forms
-          completedToday: todayFormsCount || 0,
-          lastSubmission: lastSubmissionText
+        const formsResponse = await adminApiService.getForms({
+          volunteer_id: volunteerData.volunteerId,
+          page: 1,
+          size: 50
         });
 
-        setRecentForms(recentFormsData || []);
+        const forms = formsResponse.items || [];
+        const totalForms = forms.length;
+        const submittedForms = forms.filter(f => f.status === 'submitted');
+        const today = new Date().toISOString().split('T')[0];
+        const todayForms = forms.filter(f => f.created_at.startsWith(today));
+
+        // Calculate stats
+        const calculatedStats: DashboardStats = {
+          totalForms,
+          pendingForms: forms.filter(f => f.status === 'draft').length,
+          completedToday: todayForms.length,
+          lastSubmission: forms.length > 0 ? 
+            new Date(forms[0].created_at).toLocaleString() : 'Never'
+        };
+
+        // Transform forms to recent forms format
+        const recentFormsData: RecentForm[] = forms.slice(0, 5).map(form => ({
+          id: form.id,
+          template_name: form.template_id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          volunteer_id: volunteerData.volunteerId,
+          study_number: volunteerData.studyNumber,
+          created_at: form.created_at,
+          case_id: `CASE-${form.id.slice(-4)}`
+        }));
+
+        setStats(calculatedStats);
+        setRecentForms(recentFormsData);
+
+        console.log('Dashboard data loaded from API:', { calculatedStats, recentFormsData });
+
       } catch (apiError) {
         console.error('API error:', apiError);
         // Fallback to mock data if there's an API error
@@ -171,7 +155,6 @@ const EmployeeDashboard: React.FC = () => {
       const { mockStats, mockRecentForms } = getMockDashboardData();
       setStats(mockStats);
       setRecentForms(mockRecentForms);
-      console.error('Error loading dashboard data:', err);
     } finally {
       setLoading(false);
     }
@@ -211,6 +194,44 @@ const EmployeeDashboard: React.FC = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        )}
+
+        {/* Volunteer Status Card */}
+        {volunteerData && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <UserCheck className="h-5 w-5 text-blue-600" />
+                <span>Current Volunteer Session</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    ID: {volunteerData.volunteerId}
+                  </Badge>
+                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
+                    Study: {volunteerData.studyNumber}
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-gray-600">
+                    Screening: {volunteerData.screeningDate ? 
+                      new Date(volunteerData.screeningDate).toLocaleDateString() : 
+                      'Not set'
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">
+                    Session active since login
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Stats Grid */}

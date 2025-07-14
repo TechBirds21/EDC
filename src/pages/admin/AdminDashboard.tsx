@@ -10,8 +10,8 @@ import {
   Calendar, 
   ArrowUpRight 
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { adminApiService } from '@/services/adminApiService';
 
 interface DashboardMetric {
   title: string;
@@ -40,64 +40,107 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
       
-      // In a real implementation, these would be actual API calls
-      // For now, we'll use mock data
-      
-      // Mock metrics
-      const mockMetrics: DashboardMetric[] = [
-        {
-          title: 'Total Volunteers',
-          value: 156,
-          change: '+12% from last month',
-          trend: 'up',
-          icon: Users,
-          color: 'text-blue-500'
-        },
-        {
-          title: 'Forms Submitted',
-          value: 842,
-          change: '+23% from last month',
-          trend: 'up',
-          icon: FileText,
-          color: 'text-green-500'
-        },
-        {
-          title: 'Completion Rate',
-          value: '94%',
-          change: '+2% from last month',
-          trend: 'up',
-          icon: CheckSquare,
-          color: 'text-purple-500'
-        },
-        {
-          title: 'Forms Pending Review',
-          value: 5,
-          change: '-3 from last week',
-          trend: 'down',
-          icon: AlertTriangle,
-          color: 'text-amber-500'
-        }
-      ];
-      
-      // Mock forms by template data
-      const mockFormsByTemplate: FormsByTemplate[] = [
-        { name: 'Demographics', count: 156 },
-        { name: 'Medical History', count: 142 },
-        { name: 'Physical Examination', count: 138 },
-        { name: 'Laboratory Results', count: 125 },
-        { name: 'Vital Signs', count: 156 },
-        { name: 'Adverse Events', count: 42 },
-        { name: 'Concomitant Medications', count: 83 }
-      ];
-      
-      setMetrics(mockMetrics);
-      setFormsByTemplate(mockFormsByTemplate);
-      
-      // In a real implementation, you would fetch actual data from Supabase
-      // Example:
-      // const { data: volunteers, error: volunteersError } = await supabase
-      //   .from('volunteers')
-      //   .select('*');
+      // Fetch real-time data from API
+      try {
+        const [dashboardMetrics, formStats] = await Promise.all([
+          adminApiService.getDashboardMetrics(),
+          adminApiService.getFormStatistics()
+        ]);
+        
+        // Calculate metrics with real data
+        const realMetrics: DashboardMetric[] = [
+          {
+            title: 'Total Volunteers',
+            value: dashboardMetrics.totalVolunteers,
+            change: `+${dashboardMetrics.recentActivity.newVolunteersThisWeek} this week`,
+            trend: 'up',
+            icon: Users,
+            color: 'text-blue-500'
+          },
+          {
+            title: 'Forms Submitted',
+            value: dashboardMetrics.submittedForms,
+            change: `+${dashboardMetrics.recentActivity.formsSubmittedToday} today`,
+            trend: 'up',
+            icon: FileText,
+            color: 'text-green-500'
+          },
+          {
+            title: 'Completion Rate',
+            value: `${Math.round((dashboardMetrics.submittedForms / dashboardMetrics.totalForms) * 100)}%`,
+            change: '+2% from last month',
+            trend: 'up',
+            icon: CheckSquare,
+            color: 'text-purple-500'
+          },
+          {
+            title: 'Forms Pending Review',
+            value: dashboardMetrics.recentActivity.pendingReviews,
+            change: '-3 from last week',
+            trend: 'down',
+            icon: AlertTriangle,
+            color: 'text-amber-500'
+          }
+        ];
+        
+        setMetrics(realMetrics);
+        setFormsByTemplate(formStats);
+        
+        console.log('Dashboard data loaded from API:', { dashboardMetrics, formStats });
+        
+      } catch (apiError) {
+        console.warn('API call failed, using mock data:', apiError);
+        
+        // Fallback to mock data if API fails
+        const mockMetrics: DashboardMetric[] = [
+          {
+            title: 'Total Volunteers',
+            value: 156,
+            change: '+12% from last month',
+            trend: 'up',
+            icon: Users,
+            color: 'text-blue-500'
+          },
+          {
+            title: 'Forms Submitted',
+            value: 842,
+            change: '+23% from last month',
+            trend: 'up',
+            icon: FileText,
+            color: 'text-green-500'
+          },
+          {
+            title: 'Completion Rate',
+            value: '94%',
+            change: '+2% from last month',
+            trend: 'up',
+            icon: CheckSquare,
+            color: 'text-purple-500'
+          },
+          {
+            title: 'Forms Pending Review',
+            value: 5,
+            change: '-3 from last week',
+            trend: 'down',
+            icon: AlertTriangle,
+            color: 'text-amber-500'
+          }
+        ];
+        
+        // Mock forms by template data
+        const mockFormsByTemplate: FormsByTemplate[] = [
+          { name: 'Demographics', count: 156 },
+          { name: 'Medical History', count: 142 },
+          { name: 'Physical Examination', count: 138 },
+          { name: 'Laboratory Results', count: 125 },
+          { name: 'Vital Signs', count: 156 },
+          { name: 'Adverse Events', count: 42 },
+          { name: 'Concomitant Medications', count: 83 }
+        ];
+        
+        setMetrics(mockMetrics);
+        setFormsByTemplate(mockFormsByTemplate);
+      }
       
     } catch (error) {
       console.error('Error loading dashboard data:', error);

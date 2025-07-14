@@ -11,8 +11,9 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsItem, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { adminApiService } from '@/services/adminApiService';
+import { AuditHistory } from '@/components/AuditHistory';
 
 interface AuditLog {
   id: string;
@@ -54,22 +55,81 @@ const AuditLogsPage = () => {
     try {
       setLoading(true);
       
-      // Use the new function to get formatted audit logs
-      const { data, error } = await supabase.rpc('get_formatted_audit_logs', {
-        p_limit: 100,
-        p_action: actionFilter !== 'all' ? actionFilter : null,
-        p_resource_type: resourceFilter !== 'all' ? resourceFilter : null
+      // Use real API service to get audit logs
+      const auditData = await adminApiService.getAuditLogs({
+        page: 1,
+        size: 100
       });
-
-      if (error) throw error;
-
-      setLogs(data || []);
+      
+      // Transform API data to match expected format
+      const transformedLogs: AuditLog[] = auditData.items?.map(log => ({
+        id: log.id,
+        action: 'update', // Audit logs are primarily updates
+        resource_type: 'form',
+        resource_id: log.form_id,
+        user_id: log.changed_by,
+        ip_address: null,
+        user_agent: null,
+        details: {
+          field: log.field,
+          old_value: log.old,
+          new_value: log.new,
+          reason: log.reason
+        },
+        formatted_details: `Field: ${log.field} | Reason: ${log.reason}`,
+        created_at: log.changed_at,
+        user_email: log.changed_by, // In real implementation, this would be resolved from user ID
+        user_name: log.changed_by,
+        old_value: typeof log.old === 'string' ? log.old : JSON.stringify(log.old),
+        new_value: typeof log.new === 'string' ? log.new : JSON.stringify(log.new),
+        formatted_date: new Date(log.changed_at).toLocaleDateString(),
+        formatted_time: new Date(log.changed_at).toLocaleTimeString(),
+        profiles: {
+          email: log.changed_by
+        }
+      })) || [];
+      
+      setLogs(transformedLogs);
+      
     } catch (error) {
       console.error('Error loading audit logs:', error);
+      
+      // Fallback to mock data if API fails
+      const mockLogs: AuditLog[] = [
+        {
+          id: '1',
+          action: 'update',
+          resource_type: 'form',
+          resource_id: 'form_1',
+          user_id: 'user_1',
+          ip_address: '192.168.1.100',
+          user_agent: 'Mozilla/5.0...',
+          details: {
+            field: 'glucose_result',
+            old_value: '95',
+            new_value: '98',
+            reason: 'Correction based on lab review'
+          },
+          formatted_details: 'Field: glucose_result | Reason: Correction based on lab review',
+          created_at: new Date().toISOString(),
+          user_email: 'admin@demo.com',
+          user_name: 'Admin User',
+          old_value: '95',
+          new_value: '98',
+          formatted_date: new Date().toLocaleDateString(),
+          formatted_time: new Date().toLocaleTimeString(),
+          profiles: {
+            email: 'admin@demo.com'
+          }
+        }
+      ];
+      
+      setLogs(mockLogs);
+      
       toast({
-        title: "Error",
-        description: "Failed to load audit logs",
-        variant: "destructive"
+        title: "Warning",
+        description: "Using demo audit data - API connection failed",
+        variant: "default"
       });
     } finally {
       setLoading(false);
