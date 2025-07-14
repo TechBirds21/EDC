@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import  CommonFormHeader  from '@/components/CommonFormHeader';
+import CommonFormHeader from '@/components/CommonFormHeader';
 import { LabReportHeader } from '@/components/LabReportHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/FormField';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PeriodNavigation } from '@/components/PeriodNavigation';
+import { AuditConfirmationDialog } from '@/components/AuditConfirmationDialog';
+import { AuditHistory } from '@/components/AuditHistory';
+import { usePeriodForm } from '@/hooks/usePeriodForm';
+import { useVolunteer } from '@/context/VolunteerContext';
 
 interface BiochemistryTest {
   result: string;
@@ -53,15 +58,40 @@ const ClinicalBiochemistry1Page: React.FC = () => {
   const { pid } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { volunteerData } = useVolunteer();
   
   const searchParams = new URLSearchParams(location.search);
   const caseId = searchParams.get('case');
-  const volunteerId = searchParams.get('volunteerId');
-  const studyNumber = searchParams.get('studyNumber');
+  const period = parseInt(searchParams.get('period') || '1');
+
+  // Use period-based form management
+  const {
+    formData,
+    setFormData,
+    currentPeriod,
+    savePeriodData,
+    switchPeriod,
+    getSavedPeriods,
+    hasPeriodData,
+    isLoading,
+    isSaved,
+    isAuditDialogOpen,
+    setIsAuditDialogOpen,
+    handleAuditConfirmation,
+    getAuditHistory,
+    isFormSubmitted
+  } = usePeriodForm({
+    formType: 'clinical_biochemistry_1',
+    initialData: initialFormData,
+    period
+  });
+
+  const [showAuditHistory, setShowAuditHistory] = useState(false);
+  const formId = `clinical_biochemistry_1_period_${currentPeriod}_${volunteerData?.volunteerId}`;
 
   const [labHeaderData, setLabHeaderData] = useState({
     age: '',
-    studyNo: studyNumber || '',
+    studyNo: volunteerData?.studyNumber || '',
     subjectId: '',
     sampleAndSid: '',
     sex: '',
@@ -71,21 +101,15 @@ const ClinicalBiochemistry1Page: React.FC = () => {
     reportDate: ''
   });
 
-  const [formData, setFormData] = useState<ClinicalBiochemistry1Form>(initialFormData);
-  const [loading, setLoading] = useState(false);
-
+  // Update study number when volunteer data changes
   useEffect(() => {
-    // Load saved data from localStorage
-    const savedData = localStorage.getItem(`biochemistry1_${volunteerId}`);
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setFormData(parsedData);
-      } catch (error) {
-        console.error('Error parsing saved data:', error);
-      }
+    if (volunteerData?.studyNumber) {
+      setLabHeaderData(prev => ({
+        ...prev,
+        studyNo: volunteerData.studyNumber
+      }));
     }
-  }, [volunteerId]);
+  }, [volunteerData]);
 
   const updateLabHeader = (field: string, value: string) => {
     setLabHeaderData(prev => ({
@@ -108,30 +132,50 @@ const ClinicalBiochemistry1Page: React.FC = () => {
   };
 
   const handleSave = async () => {
-    setLoading(true);
     try {
-      localStorage.setItem(`biochemistry1_${volunteerId}`, JSON.stringify(formData));
-      console.log('Saved Clinical Biochemistry 1 data to localStorage');
+      await savePeriodData({
+        ...formData,
+        labHeader: labHeaderData,
+        period: currentPeriod
+      });
+      console.log(`Saved Clinical Biochemistry 1 data for period ${currentPeriod}`);
     } catch (error) {
       console.error('Error saving:', error);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      await savePeriodData({
+        ...formData,
+        labHeader: labHeaderData,
+        period: currentPeriod
+      }, true); // true indicates this is a submit, not just a save
+      console.log(`Submitted Clinical Biochemistry 1 data for period ${currentPeriod}`);
+    } catch (error) {
+      console.error('Error submitting:', error);
+    }
+  };
+
+  const handlePeriodChange = (newPeriod: number) => {
+    switchPeriod(newPeriod);
+    // Update URL to reflect the new period
+    const params = new URLSearchParams(location.search);
+    params.set('period', newPeriod.toString());
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   };
 
   const handlePrevious = () => {
     const params = new URLSearchParams();
     if (caseId) params.set('case', caseId);
-    if (volunteerId) params.set('volunteerId', volunteerId);
-    if (studyNumber) params.set('studyNumber', studyNumber);
+    params.set('period', currentPeriod.toString());
     navigate(`/employee/project/${pid}/screening/hematology?${params.toString()}`);
   };
 
   const handleNext = () => {
     const params = new URLSearchParams();
     if (caseId) params.set('case', caseId);
-    if (volunteerId) params.set('volunteerId', volunteerId);
-    if (studyNumber) params.set('studyNumber', studyNumber);
+    params.set('period', currentPeriod.toString());
     navigate(`/employee/project/${pid}/screening/clinical-biochemistry-2?${params.toString()}`);
   };
 
@@ -155,14 +199,21 @@ const ClinicalBiochemistry1Page: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       <CommonFormHeader
         formTitle="Clinical Biochemistry 1"
-        volunteerId={volunteerId}
-        studyNumber={studyNumber}
+        volunteerId={volunteerData?.volunteerId}
+        studyNumber={volunteerData?.studyNumber}
         caseId={caseId}
         readOnly={true}
       />
 
+      <PeriodNavigation
+        currentPeriod={currentPeriod}
+        onPeriodChange={handlePeriodChange}
+        savedPeriods={getSavedPeriods()}
+        hasPeriodData={hasPeriodData}
+      />
+
       <LabReportHeader
-        volunteerId={volunteerId || ''}
+        volunteerId={volunteerData?.volunteerId || ''}
         formData={labHeaderData}
         onUpdateForm={updateLabHeader}
         disabled={false}
@@ -216,8 +267,23 @@ const ClinicalBiochemistry1Page: React.FC = () => {
             </Button>
             
             <div className="space-x-4">
-              <Button onClick={handleSave} disabled={loading}>
-                {loading ? 'Saving...' : 'Save'}
+              <Button onClick={handleSave} disabled={isLoading}>
+                {isLoading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
+              </Button>
+              {isFormSubmitted(formId) && (
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowAuditHistory(!showAuditHistory)}
+                >
+                  {showAuditHistory ? 'Hide' : 'View'} Audit Trail
+                </Button>
+              )}
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Submit
               </Button>
               <Button onClick={handleNext}>
                 Next
@@ -227,6 +293,20 @@ const ClinicalBiochemistry1Page: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Audit Trail Section */}
+      {showAuditHistory && (
+        <AuditHistory auditRecord={getAuditHistory(formId)} />
+      )}
+
+      {/* Audit Confirmation Dialog */}
+      <AuditConfirmationDialog
+        isOpen={isAuditDialogOpen}
+        onClose={() => setIsAuditDialogOpen(false)}
+        onConfirm={handleAuditConfirmation}
+        title="Confirm Form Edit"
+        description="This form has been previously submitted. To make changes, please provide your password and a reason for the modification."
+      />
     </div>
   );
 };

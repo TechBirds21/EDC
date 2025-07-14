@@ -16,10 +16,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
+import { VolunteerInfo } from '@/components/VolunteerInfo';
+import { useVolunteer } from '@/context/VolunteerContext';
 
 const AdminLayout = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { volunteerData } = useVolunteer();
 
   const navigationItems = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
@@ -113,6 +116,14 @@ const AdminLayout = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {volunteerData && (
+          <div className="px-6 pt-4">
+            <VolunteerInfo 
+              volunteerId={volunteerData.volunteerId}
+              studyNumber={volunteerData.studyNumber}
+            />
+          </div>
+        )}
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>

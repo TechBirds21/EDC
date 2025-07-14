@@ -35,6 +35,22 @@ async def create_volunteer(
     return volunteer
 
 
+@router.get("/search", response_model=Optional[VolunteerResponse])
+async def search_volunteer(
+    volunteer_id: str = Query(..., description="Volunteer ID to search for"),
+    study_number: str = Query(..., description="Study number to search for"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Search for a volunteer by volunteer_id and study_number.
+    """
+    volunteer = await volunteer_service.get_volunteer_by_ids(
+        db=db, volunteer_id=volunteer_id, study_number=study_number
+    )
+    return volunteer
+
+
 @router.get("/", response_model=VolunteerPagination)
 async def list_volunteers(
     db: AsyncSession = Depends(get_db),

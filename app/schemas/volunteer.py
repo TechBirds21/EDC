@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class VolunteerBase(BaseModel):
+    volunteer_id: str = Field(..., description="Unique volunteer identifier")
+    study_number: str = Field(..., description="Study number for the volunteer")
     screening_date: Optional[date] = None
     dob: Optional[date] = None
     gender: Optional[str] = None
@@ -13,6 +15,8 @@ class VolunteerBase(BaseModel):
 
 
 class VolunteerCreate(VolunteerBase):
+    volunteer_id: str = Field(..., description="Unique volunteer identifier")
+    study_number: str = Field(..., description="Study number for the volunteer")
     screening_date: date = Field(..., description="Screening date of the volunteer")
     
     @field_validator("dob")

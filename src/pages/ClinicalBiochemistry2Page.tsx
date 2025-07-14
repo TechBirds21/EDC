@@ -1,11 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import  CommonFormHeader  from '@/components/CommonFormHeader';
+import CommonFormHeader from '@/components/CommonFormHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/FormField';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PeriodNavigation } from '@/components/PeriodNavigation';
+import { usePeriodForm } from '@/hooks/usePeriodForm';
+import { useVolunteer } from '@/context/VolunteerContext';
 
 interface BiochemistryTest {
   result: string;
@@ -53,14 +56,28 @@ const ClinicalBiochemistry2Page: React.FC = () => {
   const { pid } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { volunteerData } = useVolunteer();
   
   const searchParams = new URLSearchParams(location.search);
   const caseId = searchParams.get('case');
-  const volunteerId = searchParams.get('volunteerId');
-  const studyNumber = searchParams.get('studyNumber');
+  const period = parseInt(searchParams.get('period') || '1');
 
-  const [formData, setFormData] = useState<ClinicalBiochemistryForm>(initialFormData);
-  const [loading, setLoading] = useState(false);
+  // Use period-based form management
+  const {
+    formData,
+    setFormData,
+    currentPeriod,
+    savePeriodData,
+    switchPeriod,
+    getSavedPeriods,
+    hasPeriodData,
+    isLoading,
+    isSaved
+  } = usePeriodForm({
+    formType: 'clinical_biochemistry_2',
+    initialData: initialFormData,
+    period
+  });
 
   const updateTest = (testName: keyof ClinicalBiochemistryForm['tests'], field: keyof BiochemistryTest, value: string) => {
     setFormData(prev => ({
@@ -76,47 +93,36 @@ const ClinicalBiochemistry2Page: React.FC = () => {
   };
 
   const handleSave = async () => {
-    setLoading(true);
     try {
-      localStorage.setItem(`biochemistry2_${volunteerId}`, JSON.stringify(formData)); 
-      console.log('Saved biochemistry data to localStorage');
-      
-      // Try Python API first
-      try {
-        await pythonApi.createForm({
-          template_id: 'Clinical Biochemistry 2',
-          volunteer_id: volunteerId || '',
-          status: "submitted",
-          data: formData,
-        });
-        
-        setIsSaved(true);
-        toast.success('Clinical biochemistry data saved successfully');
-        setLoading(false);
-        return;
-      } catch (apiError) {
-        console.warn('Python API submission failed:', apiError);
-      }
+      await savePeriodData({
+        ...formData,
+        period: currentPeriod
+      });
+      console.log(`Saved Clinical Biochemistry 2 data for period ${currentPeriod}`);
     } catch (error) {
       console.error('Error saving:', error);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const handlePeriodChange = (newPeriod: number) => {
+    switchPeriod(newPeriod);
+    // Update URL to reflect the new period
+    const params = new URLSearchParams(location.search);
+    params.set('period', newPeriod.toString());
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
   };
 
   const handlePrevious = () => {
     const params = new URLSearchParams();
     if (caseId) params.set('case', caseId);
-    if (volunteerId) params.set('volunteerId', volunteerId);
-    if (studyNumber) params.set('studyNumber', studyNumber);
+    params.set('period', currentPeriod.toString());
     navigate(`/employee/project/${pid}/lab-reports/biochemistry-1?${params.toString()}`);
   };
 
   const handleNext = () => {
     const params = new URLSearchParams();
     if (caseId) params.set('case', caseId);
-    if (volunteerId) params.set('volunteerId', volunteerId);
-    if (studyNumber) params.set('studyNumber', studyNumber);
+    params.set('period', currentPeriod.toString());
     navigate(`/employee/project/${pid}/lab-reports/pathology?${params.toString()}`);
   };
 
@@ -140,9 +146,16 @@ const ClinicalBiochemistry2Page: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       <CommonFormHeader
         title="Clinical Biochemistry (Part 2)"
-        volunteerId={volunteerId}
-        studyNumber={studyNumber}
+        volunteerId={volunteerData?.volunteerId}
+        studyNumber={volunteerData?.studyNumber}
         caseId={caseId}
+      />
+
+      <PeriodNavigation
+        currentPeriod={currentPeriod}
+        onPeriodChange={handlePeriodChange}
+        savedPeriods={getSavedPeriods()}
+        hasPeriodData={hasPeriodData}
       />
 
       <Card className="clinical-card">
@@ -193,8 +206,8 @@ const ClinicalBiochemistry2Page: React.FC = () => {
             </Button>
             
             <div className="space-x-4">
-              <Button onClick={handleSave} disabled={loading}>
-                {loading ? 'Saving...' : 'Save'}
+              <Button onClick={handleSave} disabled={isLoading}>
+                {isLoading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
               </Button>
               <Button onClick={handleNext}>
                 Next

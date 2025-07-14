@@ -32,6 +32,21 @@ async def get_volunteer(db: AsyncSession, volunteer_id: UUID) -> Optional[Volunt
     return result.scalars().first()
 
 
+async def get_volunteer_by_ids(
+    db: AsyncSession, volunteer_id: str, study_number: str
+) -> Optional[Volunteer]:
+    """
+    Get a volunteer by volunteer_id and study_number
+    """
+    result = await db.execute(
+        select(Volunteer).where(
+            Volunteer.volunteer_id == volunteer_id,
+            Volunteer.study_number == study_number
+        )
+    )
+    return result.scalars().first()
+
+
 async def list_volunteers(
     db: AsyncSession, page: int = 1, size: int = 100
 ) -> Tuple[List[Volunteer], int]:
