@@ -4,6 +4,7 @@ version = "1.0.0"
 description = "Electronic Data Capture (EDC) API - Production Ready"
 authors = ["EDC Team <team@edc.com>"]
 readme = "README.md"
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

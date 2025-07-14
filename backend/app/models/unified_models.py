@@ -5,11 +5,10 @@ from enum import Enum
 
 from sqlalchemy import Column, String, DateTime, Boolean, Integer, Date, Text, JSON, ForeignKey, Table
 from sqlalchemy.dialects.postgresql import UUID as pg_UUID
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-Base = declarative_base()
+from app.db.base import Base
 
 # Enums for better type safety
 class UserRole(str, Enum):
@@ -92,9 +91,9 @@ class Project(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     
-    # Metadata for project configuration
+    # Configuration for project settings
     settings = Column(JSON, default={})
-    metadata = Column(JSON, default={})
+    project_metadata = Column(JSON, default={})  # Renamed from metadata to avoid conflict
     
     # Audit fields
     created_by = Column(pg_UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)

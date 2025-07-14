@@ -37,7 +37,7 @@ async def create_project(
         start_date=project_data.start_date,
         end_date=project_data.end_date,
         settings=project_data.settings,
-        metadata=project_data.metadata,
+        project_metadata=project_data.project_metadata,
         created_by=current_user.id,
         status=ProjectStatus.PLANNING
     )
@@ -193,7 +193,7 @@ async def update_project(
         "start_date": project.start_date,
         "end_date": project.end_date,
         "settings": project.settings,
-        "metadata": project.metadata
+        "project_metadata": project.project_metadata
     }
     
     # Update project
@@ -212,7 +212,7 @@ async def update_project(
         "start_date": project.start_date,
         "end_date": project.end_date,
         "settings": project.settings,
-        "metadata": project.metadata
+        "project_metadata": project.project_metadata
     }
     
     await log_activity(

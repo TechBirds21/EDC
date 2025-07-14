@@ -55,7 +55,7 @@ class ProjectCreate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     settings: Optional[Dict[str, Any]] = {}
-    metadata: Optional[Dict[str, Any]] = {}
+    project_metadata: Optional[Dict[str, Any]] = {}
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -64,7 +64,7 @@ class ProjectUpdate(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     settings: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    project_metadata: Optional[Dict[str, Any]] = None
 
 class ProjectResponse(BaseSchema):
     id: UUID
@@ -74,7 +74,7 @@ class ProjectResponse(BaseSchema):
     start_date: Optional[date]
     end_date: Optional[date]
     settings: Dict[str, Any]
-    metadata: Dict[str, Any]
+    project_metadata: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
     creator: Optional[UserResponse]
