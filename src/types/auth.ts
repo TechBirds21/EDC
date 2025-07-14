@@ -1,6 +1,4 @@
 
-import { User, Session } from '@supabase/supabase-js';
-
 export type UserRole = 'employee' | 'admin' | 'super_admin';
 
 export interface Profile {
@@ -12,14 +10,16 @@ export interface Profile {
   status: string;
 }
 
-export interface AuthUser extends User {
+export interface AuthUser {
+  id: string;
+  email?: string;
   role: UserRole;
   profile?: Profile;
 }
 
 export interface AuthContextType {
   user: AuthUser | null;
-  session: Session | null;
+  session: any | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
   signUp: (email: string, password: string) => Promise<{ error: any | null }>;

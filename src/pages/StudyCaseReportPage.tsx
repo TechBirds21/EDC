@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from '@/integrations/supabase/client';
 import  CommonFormHeader  from "@/components/CommonFormHeader";
 import { FormField } from "@/components/FormField";
 import { PrintableForm } from '@/components/PrintableForm';

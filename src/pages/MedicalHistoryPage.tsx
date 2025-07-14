@@ -6,13 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Printer } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { db } from '@/lib/dexie';
 import { useToast } from '@/hooks/use-toast';
 import  CommonFormHeader  from '@/components/CommonFormHeader';
 import { PrintableForm } from '@/components/PrintableForm';
 import  CommonFormNavigation  from '@/components/CommonFormNavigation';
 import { useEmployeeFormFlow } from '@/hooks/useEmployeeFormFlow';
+import FormDateTimeFooter from '@/components/FormDateTimeFooter';
 
 interface MedicalHistoryItem { particulars: string; yesNo: string; remarks: string; }
 interface FamilyHistoryItem { disease: string; yesNo: string; remarks: string; }
@@ -404,6 +404,8 @@ const MedicalHistoryPage: React.FC = () => {
             />
           </CardContent>
         </Card>
+        
+        <FormDateTimeFooter />
       </PrintableForm>
     </div>
   );

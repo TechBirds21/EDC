@@ -13,7 +13,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Search, Users, UserPlus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { usersApi } from '@/services/api';
 import { toast } from 'sonner';
 
 interface UserProfile {
@@ -46,15 +46,10 @@ const UsersPage: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await usersApi.getUsers();
 
       // Type assertion to handle string to union type conversion
-      const typedUsers: UserProfile[] = (data || []).map(user => ({
+      const typedUsers: UserProfile[] = (data || []).map((user: any) => ({
         ...user,
         role: user.role as 'employee' | 'admin' | 'super_admin'
       }));

@@ -1,19 +1,10 @@
 
-import { supabase } from '@/lib/supabase';
+import { usersApi } from '@/services/api';
 import { Profile, UserRole } from '@/types/auth';
 
 export const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return null;
-    }
+    const data = await usersApi.getUserById(userId);
     
     if (data) {
       return {

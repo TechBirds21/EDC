@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import  CommonFormHeader  from '@/components/CommonFormHeader';
 import { PrintableForm } from '@/components/PrintableForm';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { FormField } from '@/components/FormField';
 import { toast } from 'sonner';
 import  CommonFormNavigation  from '@/components/CommonFormNavigation';
 import { useEmployeeFormFlow } from '@/hooks/useEmployeeFormFlow';
+import FormDateTimeFooter from '@/components/FormDateTimeFooter';
 
 interface SystemicExamItem {
   site: string;
@@ -343,6 +343,8 @@ const SystemicExaminationPage: React.FC = () => {
           />
         </CardContent>
       </Card>
+      
+      <FormDateTimeFooter />
     </PrintableForm>
   );
 };

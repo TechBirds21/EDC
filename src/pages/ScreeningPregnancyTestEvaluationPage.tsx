@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/FormField';
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { db } from '@/lib/dexie';
 import { useToast } from '@/hooks/use-toast';
 import  CommonFormHeader  from '@/components/CommonFormHeader';

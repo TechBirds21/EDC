@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from '@/integrations/supabase/client';
 import  CommonFormHeader  from "@/components/CommonFormHeader";
 import { FormField } from "@/components/FormField";
 import { PrintableForm } from '@/components/PrintableForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronLeft, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
+import CommonFormNavigation from '@/components/CommonFormNavigation';
+import FormDateTimeFooter from '@/components/FormDateTimeFooter';
 
 const INCLUSION_CRITERIA = [
   "Healthy adult human subjects within the age range of 18 to 45 years (both inclusive)",
@@ -478,38 +479,19 @@ function InclusionCriteriaPage() {
               <span>Previous</span>
             </Button>
 
-            <div className="flex space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handlePrint}
-                className="flex items-center space-x-2"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print</span>
-              </Button>
-              
-              <Button
-                type="button"
-                onClick={handleSave}
-                disabled={loading}
-                className={`${isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-              >
-                {loading ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
-              </Button>
-              
-              <Button
-                type="button"
-                onClick={handleContinue}
-                disabled={!isSaved}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-              >
-                Continue
-              </Button>
-            </div>
+            <CommonFormNavigation
+              onPrevious={handlePrevious}
+              onSaveLocal={handleSave}
+              onContinue={handleContinue}
+              loading={loading}
+              isSaved={isSaved}
+              showPrint={true}
+            />
           </div>
         </CardContent>
       </Card>
+      
+      <FormDateTimeFooter />
     </PrintableForm>
   );
 }
