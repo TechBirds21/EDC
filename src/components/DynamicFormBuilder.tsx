@@ -45,32 +45,35 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
     const fieldId = field.id || field.name;
     
     // Handle table/matrix fields
-    if (field.type === 'table' && field.tableConfig) {
-      const columns: TableColumn[] = field.tableConfig.columns || [];
-
+    if (field.type === 'table') {
+      // Use tableConfig if available, otherwise use columns directly
+      const columns: TableColumn[] = field.tableConfig?.columns || field.columns || [];
       const currentValue = formData[fieldId] || [];
 
       return (
-        <TableField
-          key={fieldId}
-          id={fieldId}
-          label={field.label || 'Table'}
-          columns={columns}
-          rows={[]}
-          value={currentValue}
-          onChange={(newValue) => handleFieldChange(fieldId, newValue)}
-          onBlur={() => {}}
-          allowAddRows={field.tableConfig.allowAddRows ?? true}
-          allowEditColumns={true}
-          onColumnsChange={(newColumns) => {
-            // Update field configuration if needed
-            console.log('Columns updated:', newColumns);
-          }}
-        />
+        <div key={fieldId} className={field.width === 'full' ? 'col-span-full' : ''}>
+          <TableField
+            id={fieldId}
+            label={field.label || 'Table'}
+            columns={columns}
+            rows={[]}
+            value={currentValue}
+            onChange={(newValue) => handleFieldChange(fieldId, newValue)}
+            onBlur={() => {}}
+            allowAddRows={field.tableConfig?.allowAddRows ?? true}
+            allowEditColumns={false} // Don't allow column editing in preview
+            onColumnsChange={(newColumns) => {
+              console.log('Columns updated in preview:', newColumns);
+              // In a real scenario, you might want to save this back to the template
+            }}
+          />
+        </div>
       );
     }
 
     // Handle other field types
+    const fieldWidth = field.width === 'full' ? 'col-span-full' : '';
+    
     switch (field.type) {
       case 'text':
       case 'email':
@@ -80,7 +83,7 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
       case 'url':
       case 'tel':
         return (
-          <div key={fieldId} className="mb-4">
+          <div key={fieldId} className={`mb-4 ${fieldWidth}`}>
             <Label htmlFor={fieldId} className="mb-2">
               {field.label || fieldId}
               {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -98,7 +101,7 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
         
       case 'textarea':
         return (
-          <div key={fieldId} className="mb-4">
+          <div key={fieldId} className={`mb-4 ${fieldWidth}`}>
             <Label htmlFor={fieldId} className="mb-2">
               {field.label || fieldId}
               {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -116,7 +119,7 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
         
       case 'select':
         return (
-          <div key={fieldId} className="mb-4">
+          <div key={fieldId} className={`mb-4 ${fieldWidth}`}>
             <Label htmlFor={fieldId} className="mb-2">
               {field.label || fieldId}
               {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -145,7 +148,7 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
         
       case 'radio':
         return (
-          <div key={fieldId} className="mb-4">
+          <div key={fieldId} className={`mb-4 ${fieldWidth}`}>
             <Label className="mb-2">
               {field.label || fieldId}
               {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -171,7 +174,7 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
         
       case 'checkbox':
         return (
-          <div key={fieldId} className="mb-4 flex items-center space-x-2">
+          <div key={fieldId} className={`mb-4 flex items-center space-x-2 ${fieldWidth}`}>
             <Checkbox
               id={fieldId}
               checked={!!formData[fieldId]}
@@ -186,7 +189,7 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
         
       default:
         return (
-          <div key={fieldId} className="mb-4">
+          <div key={fieldId} className={`mb-4 ${fieldWidth}`}>
             <Label htmlFor={fieldId} className="mb-2">
               {field.label || fieldId} ({field.type})
               {field.required && <span className="text-red-500 ml-1">*</span>}
@@ -208,68 +211,37 @@ const DynamicFormBuilder: React.FC<DynamicFormBuilderProps> = ({
     }
 
     return (
-      <div key={section.id || section.title} className="mb-6">
-        <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
-        {section.fields.map(renderField)}
-      </div>
+      <Card key={section.id || section.title} className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">{section.title}</CardTitle>
+          {section.description && (
+            <p className="text-sm text-muted-foreground">{section.description}</p>
+          )}
+        </CardHeader>
+        <CardContent>
+          <div className={`grid gap-6 ${section.columns ? `grid-cols-${Math.min(section.columns, 3)}` : 'grid-cols-1'}`}>
+            {section.fields.map(renderField)}
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{template?.name || 'Dynamic Form'}</CardTitle>
-      </CardHeader>
-      <CardContent> 
-        {template?.sections && Array.isArray(template.sections) ? (
-          template.sections.map(renderSection)
-        ) : (
-          <div>
-            <p className="text-gray-500 mb-4">
-              Template structure: {JSON.stringify(template, null, 2)}
-            </p>
-             
-            {/* Example table field for testing */}
-            <TableField
-              id="example-table"
-              label="Example Data Table"
-              columns={[
-                {
-                  id: 'name',
-                  label: 'Name',
-                  type: 'text',
-                  required: true
-                },
-                {
-                  id: 'age',
-                  label: 'Age',
-                  type: 'number',
-                  required: false
-                },
-                {
-                  id: 'status',
-                  label: 'Status',
-                  type: 'select',
-                  options: [
-                    { label: 'Active', value: 'active' },
-                    { label: 'Inactive', value: 'inactive' },
-                    { label: 'Pending', value: 'pending' },
-                  ],
-                  required: false
-                }
-              ]}
-              rows={[]}
-              value={formData['example-table'] || []}
-              onChange={(value) => handleFieldChange('example-table', value)}
-              onBlur={() => {}}
-              allowAddRows={true}
-              allowEditColumns={true}
-              onColumnsChange={(columns) => console.log('Columns updated:', columns)}
-            />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      {template?.sections && Array.isArray(template.sections) && template.sections.length > 0 ? (
+        template.sections.map(renderSection)
+      ) : (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-gray-500">
+              <p className="text-lg font-medium mb-2">No Form Sections</p>
+              <p className="text-sm">This template doesn't have any sections defined yet.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

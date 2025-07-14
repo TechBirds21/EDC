@@ -35,8 +35,46 @@ export const TableField: React.FC<TableFieldProps> = ({
   isDirty = false,
   onColumnsChange,
 }) => {
-  const [rows, setRows] = useState<TableRow[]>(value || initialRows || []);
-  const [columns, setColumns] = useState<TableColumn[]>(initialColumns || []);
+  // Initialize state with better default handling
+  const [rows, setRows] = useState<TableRow[]>(() => {
+    if (value && Array.isArray(value) && value.length > 0) {
+      return value;
+    }
+    if (initialRows && Array.isArray(initialRows) && initialRows.length > 0) {
+      return initialRows;
+    }
+    return [];
+  });
+  
+  const [columns, setColumns] = useState<TableColumn[]>(() => {
+    if (initialColumns && Array.isArray(initialColumns) && initialColumns.length > 0) {
+      return initialColumns;
+    }
+    // Provide default columns if none exist
+    return [
+      {
+        id: 'col1',
+        label: 'Column 1',
+        type: 'text',
+        required: false
+      }
+    ];
+  });
+  
+  // Sync with external value changes
+  React.useEffect(() => {
+    if (value && Array.isArray(value)) {
+      setRows(value);
+    }
+  }, [value]);
+
+  // Sync with external column changes
+  React.useEffect(() => {
+    if (initialColumns && Array.isArray(initialColumns) && initialColumns.length > 0) {
+      setColumns(initialColumns);
+    }
+  }, [initialColumns]);
+
   const [isColumnDialogOpen, setIsColumnDialogOpen] = useState(false);
   const [editingColumn, setEditingColumn] = useState<TableColumn | null>(null);
   const [newColumn, setNewColumn] = useState<Partial<TableColumn>>({
