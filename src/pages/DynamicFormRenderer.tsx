@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import CommonFormHeader  from '@/components/CommonFormHeader';
-import  FormNavigation  from '@/components/FormNavigation';
+import  CommonFormNavigation  from '@/components/CommonFormNavigation';
+import FormDateTimeFooter from '@/components/FormDateTimeFooter';
 import { JsonSchema, renderField } from '@/utils/formHelpers';
 import { db } from '@/lib/dexie';
 import { useProjectMenu } from '@/hooks/useProjectMenu';
@@ -325,17 +326,18 @@ const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
         </Card>
       ))}
 
-      <FormNavigation
+      <CommonFormNavigation
         hasPrevious={allFormPaths.indexOf(formPath) > 0}
         hasNext={allFormPaths.indexOf(formPath) < allFormPaths.length - 1}
-        isLastForm={isLastForm}
         onPrevious={() => console.log('Previous')}
-        onNext={() => console.log('Next')}
         onSaveLocal={() => console.log('Save Local')}
-        onPreview={isLastForm ? () => console.log('Preview') : undefined}
-        onSubmit={isLastForm ? () => console.log('Submit') : undefined}
+        onContinue={() => console.log('Continue')}
         loading={loading}
+        isSaved={false}
+        showPrint={true}
       />
+      
+      <FormDateTimeFooter />
     </div>
   );
 };

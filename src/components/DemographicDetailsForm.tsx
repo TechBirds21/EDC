@@ -30,7 +30,8 @@ import { Printer } from "lucide-react";
 import { db } from "@/lib/dexie";
 import { PrintableForm } from "./PrintableForm";
 import CommonFormHeader from "./CommonFormHeader";
-import FormNavigation from "./FormNavigation";
+import CommonFormNavigation from "./CommonFormNavigation";
+import FormDateTimeFooter from "./FormDateTimeFooter";
 import { useToast } from "@/hooks/use-toast";
 import { useFormSubmission } from "@/hooks/useFormSubmission";
 import { useFormStepper } from "@/hooks/useFormStepper";
@@ -843,17 +844,19 @@ const DemographicDetailsPage: React.FC = () => {
 
       {/* Navigation bar */}
       <div className="no-print">
-        <FormNavigation
+        <CommonFormNavigation
           hasPrevious={hasPrevious}
           hasNext={hasNext}
-          isLastForm={isLastForm}
           onPrevious={goPrevious}
-          onNext={handleContinue}
           onSaveLocal={handleSaveLocal}
+          onContinue={handleContinue}
           loading={isSubmitting}
           isSaved={isSaved}
+          showPrint={true}
         />
       </div>
+      
+      <FormDateTimeFooter />
     </div>
   );
 };
