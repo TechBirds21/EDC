@@ -22,11 +22,7 @@ class Settings(BaseSettings):
     # Database settings
     DATABASE_URL: PostgresDsn
     
-    # Supabase settings
-    SUPABASE_URL: str
-    SUPABASE_KEY: str
-    
-    # JWT settings
+    # JWT settings (removing Supabase dependency)
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
@@ -34,6 +30,10 @@ class Settings(BaseSettings):
     # Pagination defaults
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
+
+    # Optional Supabase settings for legacy compatibility
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_KEY: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 

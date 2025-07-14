@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.security import SupabaseAuth
+from app.core.security import JWTAuth
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -21,11 +21,11 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-# Add Supabase JWT authentication
-auth = SupabaseAuth()
+# Add JWT authentication
+auth = JWTAuth()
 
 # Include API router
-app.include_router(api_router, prefix=settings.API_V1_STR, dependencies=[auth])
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/health")
