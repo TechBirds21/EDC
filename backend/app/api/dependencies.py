@@ -23,12 +23,3 @@ def get_current_user_id(current_user: User = Depends(get_current_user)) -> str:
     Get the current user ID
     """
     return current_user.id
-
-
-CommonDeps = Annotated[
-    tuple[AsyncSession, str],
-    Depends(
-        lambda db: Depends(get_db),
-        current_user_id: Depends(get_current_user_id),
-    ),
-]

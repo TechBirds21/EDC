@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import change_log, form_templates, forms, volunteers
+from app.api.endpoints import auth, change_log, form_templates, forms, volunteers
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(
     volunteers.router, prefix="/volunteers", tags=["volunteers"]
 )

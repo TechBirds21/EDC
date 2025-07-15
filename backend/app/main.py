@@ -10,7 +10,6 @@ import logging
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.security import JWTAuth
 
 # Configure logging
 logging.basicConfig(

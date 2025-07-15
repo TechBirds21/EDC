@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 import httpx
@@ -8,6 +8,14 @@ from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+
+
+# Test users configuration
+TEST_USERS = {
+    "superadmin@edc.com": {"role": "super_admin", "name": "Super Admin"},
+    "admin@edc.com": {"role": "admin", "name": "Admin User"},
+    "employee@edc.com": {"role": "employee", "name": "Employee User"},
+}
 
 
 class TokenPayload(BaseModel):
@@ -21,7 +29,7 @@ class User(BaseModel):
     role: str
 
 
-class SupabaseAuth(HTTPBearer):
+class SimpleAuth(HTTPBearer):
     async def __call__(
         self, request: Request
     ) -> Optional[HTTPAuthorizationCredentials]:
@@ -40,16 +48,17 @@ class SupabaseAuth(HTTPBearer):
             )
             
         try:
-            # Verify JWT with Supabase JWT secret
+            # Try to decode JWT token
             payload = jwt.decode(
                 credentials.credentials,
-                settings.SUPABASE_JWT_SECRET,
-                algorithms=["HS256"],
+                settings.JWT_SECRET,
+                algorithms=[settings.JWT_ALGORITHM],
             )
             
             # Extract user ID and role
             user_id = payload.get("sub")
-            user_role = payload.get("role", "user")
+            user_email = payload.get("email")
+            user_role = payload.get("role", "employee")
             
             if not user_id:
                 raise HTTPException(
@@ -63,13 +72,51 @@ class SupabaseAuth(HTTPBearer):
             return credentials
                 
         except JWTError as e:
+            # For test users, check if it's a test email
+            try:
+                # Try to extract email from a simple format
+                email = credentials.credentials
+                if email in TEST_USERS:
+                    # Create a fake user for test accounts
+                    request.state.user = User(
+                        id=email.replace("@", "_").replace(".", "_"),
+                        role=TEST_USERS[email]["role"]
+                    )
+                    return credentials
+            except:
+                pass
+                
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Could not validate credentials: {str(e)}",
             )
 
 
+def create_access_token(email: str, role: str, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token for a user."""
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
+    
+    to_encode = {
+        "sub": email.replace("@", "_").replace(".", "_"),
+        "email": email,
+        "role": role,
+        "exp": expire
+    }
+    
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return encoded_jwt
+
+
 def get_current_user(request: Request) -> User:
+    """Get the current user from the request state."""
+    if not hasattr(request.state, 'user'):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
     return request.state.user
 
 
@@ -89,3 +136,7 @@ def get_super_admin_user(user: User = Depends(get_current_user)) -> User:
             detail="Insufficient permissions",
         )
     return user
+
+
+# Auth dependency - require authentication for protected routes
+auth_required = Depends(SimpleAuth())

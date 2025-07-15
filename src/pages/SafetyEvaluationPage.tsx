@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Printer } from 'lucide-react';
 import CommonFormNavigation from '@/components/CommonFormNavigation';
 import FormDateTimeFooter from '@/components/FormDateTimeFooter';
+import { pythonApi } from '@/services/api';
 import type { SignatureData } from '@/types/common';
 
 interface VitalSign {
@@ -188,21 +189,15 @@ const PostStudySafetyEvaluationPage: React.FC = () => {
     if (!caseId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('patient_forms')
-        .select('answers')
-        .eq('case_id', caseId)
-        .eq('template_name', `Post Study Safety Evaluation Period ${activePeriod}`)
-        .maybeSingle();
+      // Load from Python API
+      const response = await pythonApi.getForms(1, 100, {
+        template_id: 'safety_evaluation',
+        volunteer_id: caseId
+      });
 
-      if (error) {
-        console.error('Error loading data:', error);
-        return;
-      }
-
-      if (data?.answers) {
-        const answers = data.answers as unknown as PostStudySafetyFormData;
-        setFormData(answers);
+      if (response && response.items.length > 0) {
+        const formData = response.items[0].data as PostStudySafetyFormData;
+        setFormData(formData);
         setIsSaved(true);
       }
     } catch (error) {
@@ -366,18 +361,14 @@ const PostStudySafetyEvaluationPage: React.FC = () => {
       const localKey = `postStudySafety_${volunteerId}_period${activePeriod}`;
       localStorage.setItem(localKey, JSON.stringify(formData));
 
-      // Save to database
-      const { error } = await supabase
-        .from('patient_forms')
-        .upsert({
-          case_id: caseId,
-          volunteer_id: volunteerId,
-          study_number: studyNumber,
-          template_name: `Post Study Safety Evaluation Period ${activePeriod}`,
-          answers: formData as any
-        });
-
-      if (error) throw error;
+      // Save to Python API
+      await pythonApi.createForm({
+        template_id: 'safety_evaluation',
+        volunteer_id: volunteerId,
+        study_number: studyNumber,
+        data: formData,
+        status: 'submitted'
+      });
 
       setIsSaved(true);
       toast.success(`Post study safety evaluation for Period ${activePeriod} saved successfully`);

@@ -143,11 +143,12 @@ export function useEmployeeFormFlow(formTitle: string) {
         const { template_id, answers } = localForm; 
         
         try {
-          // Try Python API first
+          // Submit to Python API
           const response = await pythonApi.createForm({
             template_id,
             volunteer_id: volunteerId,
             status: "completed",
+            study_number: studyNumber,
             data: answers,
           });
           
@@ -155,24 +156,7 @@ export function useEmployeeFormFlow(formTitle: string) {
           await db.pending_forms.update(localForm.id!, { synced: true });
           successCount++;
         } catch (apiError) {
-          console.warn('Python API submission failed, falling back to Supabase:', apiError);
-          
-          // Fall back to Supabase
-          const { error } = await supabase
-            .from('patient_forms')
-            .upsert({
-              case_id: caseId,
-              volunteer_id: volunteerId,
-              study_number: studyNumber,
-              template_name: template_id,
-              answers: answers
-            });
-            
-          if (error) throw error;
-          
-          // Mark local as synced
-          await db.pending_forms.update(localForm.id!, { synced: true });
-          successCount++;
+          console.error('Python API submission failed:', apiError);
         }
         
         // Mark local as synced in collector

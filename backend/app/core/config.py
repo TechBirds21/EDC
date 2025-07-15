@@ -23,24 +23,17 @@ class Settings(BaseSettings):
             return [AnyHttpUrl(origin) for origin in v]
         raise ValueError(v)
 
-    # Database settings
-    DATABASE_URL: PostgresDsn
+    # Database settings (optional for testing)
+    DATABASE_URL: Optional[PostgresDsn] = None
     
-    # JWT settings
-    JWT_SECRET_KEY: str
+    # JWT secret for local authentication
+    JWT_SECRET: str = "your-secret-key-here-replace-in-production"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
-    
-    # Security settings
-    BCRYPT_ROUNDS: int = 12
+    JWT_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
     # Pagination defaults
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
-
-    # Remove Supabase settings
-    # SUPABASE_URL: Optional[str] = None
-    # SUPABASE_KEY: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user_id, get_pagination_params
-from app.core.security import User, get_current_user
+from app.core.security import User, get_current_user, auth_required
 from app.db.session import get_db
 from app.schemas.volunteer import (
     VolunteerCreate,

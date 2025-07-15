@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { pythonApi } from '@/services/api';
 
 interface Margins {
   top: string;
@@ -34,13 +35,11 @@ export const usePrintSettings = (templateName: string) => {
 
   const loadPrintSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('print_settings')
-        .select('*')
-        .eq('template_name', templateName)
-        .maybeSingle();
+      // Load from Python API
+      const result = await pythonApi.fetchWithAuth(`/print-settings?template_name=${templateName}`);
 
-      if (data && !error) {
+      if (result && result.data) {
+        const data = result.data;
         // Ensure margins is properly parsed
         let margins: Margins = { top: '1cm', bottom: '1cm', left: '1cm', right: '1cm' };
         
@@ -49,8 +48,7 @@ export const usePrintSettings = (templateName: string) => {
             if (typeof data.margins === 'string') {
               margins = JSON.parse(data.margins);
             } else if (typeof data.margins === 'object' && data.margins !== null && !Array.isArray(data.margins)) {
-              // Type assertion for Json to Margins conversion
-              margins = data.margins as unknown as Margins;
+              margins = data.margins as Margins;
             }
           } catch (e) {
             console.error('Error parsing margins:', e);
@@ -97,26 +95,24 @@ export const usePrintSettings = (templateName: string) => {
     if (!settings.id) {
       // Create new settings if they don't exist
       try {
-        const { data, error } = await supabase
-          .from('print_settings')
-          .insert({
+        const result = await pythonApi.fetchWithAuth('/print-settings', {
+          method: 'POST',
+          body: JSON.stringify({
             template_name: templateName,
             page_size: updates.page_size,
             margins: updates.margins ? JSON.stringify(updates.margins) : undefined,
             font_size: updates.font_size,
             line_height: updates.line_height
           })
-          .select()
-          .single();
+        });
           
-        if (error) return { error };
-        
-        if (data) {
+        if (result && result.data) {
+          const data = result.data;
           // Parse margins from the returned data
           let margins: Margins = { top: '1cm', bottom: '1cm', left: '1cm', right: '1cm' };
           if (data.margins) {
             try {
-              margins = typeof data.margins === 'string' ? JSON.parse(data.margins) : data.margins as unknown as Margins;
+              margins = typeof data.margins === 'string' ? JSON.parse(data.margins) : data.margins as Margins;
             } catch (e) {
               console.error('Error parsing returned margins:', e);
             }
@@ -146,16 +142,17 @@ export const usePrintSettings = (templateName: string) => {
     if (updates.font_size) updateData.font_size = updates.font_size;
     if (updates.line_height) updateData.line_height = updates.line_height;
 
-    const { error } = await supabase
-      .from('print_settings')
-      .update(updateData)
-      .eq('id', settings.id);
+    try {
+      await pythonApi.fetchWithAuth(`/print-settings/${settings.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      });
 
-    if (!error) {
       setSettings(prev => ({ ...prev, ...updates }));
+      return { error: null };
+    } catch (error) {
+      return { error };
     }
-
-    return { error };
   };
 
   return { settings, loading, updatePrintSettings };
