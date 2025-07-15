@@ -7,6 +7,9 @@ import { GlobalFormProvider } from '@/context/GlobalFormContext';
 import RequireRole from '@/components/RequireRole';
 import { Toaster } from '@/components/ui/toaster';
 
+// Import Supabase compatibility layer
+import '@/lib/supabaseCompat';
+
 // Page imports
 import LoginPage from '@/pages/LoginPage';
 import FormExample from '@/pages/FormExample';

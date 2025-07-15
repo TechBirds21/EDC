@@ -6,9 +6,10 @@ const handleError = (error: any) => {
 
 // Python API integration (PostgreSQL backend)
 export const pythonApi = {
-  baseUrl: process.env.NODE_ENV === 'production' 
-    ? 'https://api.clinicalcapture.com/api' 
-    : 'http://localhost:8000/api',
+  baseUrl: import.meta.env.VITE_API_URL || 
+    (import.meta.env.MODE === 'production' 
+      ? 'https://api.clinicalcapture.com' 
+      : 'http://localhost:8000'),
     
   async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     // Get auth token from localStorage
@@ -22,7 +23,7 @@ export const pythonApi = {
     };
     
     // Make the request
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const response = await fetch(`${this.baseUrl}/api${endpoint}`, {
       ...options, 
       headers
     });

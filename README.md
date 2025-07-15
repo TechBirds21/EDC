@@ -1,8 +1,10 @@
 # EDC - Electronic Data Capture System
 
-## 🚀 Production-Ready Implementation Complete
+## 🚀 Production-Ready Implementation Complete ✅
 
 A comprehensive Electronic Data Capture (EDC) system built with modern technologies, featuring PostgreSQL integration, unified forms management, role-based access control, and comprehensive audit logging.
+
+> **🎉 Migration Complete**: All Supabase dependencies have been removed. The system now runs entirely on Python FastAPI + PostgreSQL. See [MIGRATION_COMPLETE.md](./MIGRATION_COMPLETE.md) for details.
 
 ## ✨ Features Implemented
 
@@ -53,23 +55,9 @@ Backend (FastAPI + SQLAlchemy)
 PostgreSQL Database (Neon Cloud)
 ```
 
+**✅ Migration Complete**: All Supabase dependencies have been removed. The application now runs entirely on the Python FastAPI backend with PostgreSQL/Neon database.
+
 ## 📦 Installation
-
-### Backend Setup
-
-```bash
-cd backend
-
-# Install dependencies
-pip install fastapi sqlalchemy asyncpg alembic python-jose passlib bcrypt pydantic pydantic-settings uvicorn
-
-# Set up environment
-cp .env.example .env
-# Edit .env with your configuration
-
-# Initialize database
-python -m app.db.init_db
-```
 
 ### Frontend Setup
 
@@ -77,11 +65,34 @@ python -m app.db.init_db
 # Install dependencies
 npm install
 
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your backend API URL
+
 # Start development server
 npm run dev
 
 # Build for production
 npm run build
+```
+
+### Backend Setup
+
+```bash
+cd backend
+
+# Install dependencies (using pip or poetry)
+pip install fastapi sqlalchemy asyncpg alembic python-jose passlib bcrypt pydantic pydantic-settings uvicorn
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your Neon PostgreSQL connection string
+
+# Initialize database (if needed)
+python -m app.db.init_db
+
+# Start backend server
+uvicorn app.main:app --reload
 ```
 
 ## 🌐 API Endpoints

@@ -1,7 +1,8 @@
 
-// PostgreSQL API helpers (replacing Supabase)
+// PostgreSQL API helpers (replacing Supabase completely)
 import { pythonApi } from '@/services/api';
 
+// Legacy form data save function - routes to Python API
 export const saveFormData = async (tableName: string, data: any) => {
   try {
     // Use the Python API for all database operations
@@ -20,6 +21,7 @@ export const saveFormData = async (tableName: string, data: any) => {
   }
 };
 
+// Legacy form data update function - routes to Python API
 export const updateFormData = async (tableName: string, id: string, data: any) => {
   try {
     // Use the Python API for updates
@@ -34,3 +36,6 @@ export const updateFormData = async (tableName: string, id: string, data: any) =
     return { success: false, error };
   }
 };
+
+// Note: Supabase has been completely removed and replaced with Python FastAPI backend
+// All data operations now go through the Python API at /src/services/api.ts

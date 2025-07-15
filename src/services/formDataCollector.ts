@@ -110,43 +110,8 @@ class FormDataCollector {
           message: `Successfully submitted ${results.length} forms using Python API` 
         };
       } catch (pythonApiError) {
-        console.error('Python API submission failed, falling back to Supabase:', pythonApiError);
-        
-        // Fall back to Supabase direct submission
-        const results = await Promise.all(
-          formsToSubmit.map(async (form) => {
-            const { error } = await supabase
-              .from('patient_forms')
-              .upsert({
-                case_id: form.caseId,
-                volunteer_id: form.volunteerId,
-                study_number: form.studyNumber,
-                template_name: form.templateName,
-                answers: form.data
-              });
-            
-            if (error) throw error;
-            
-            return { 
-              formName: form.templateName, 
-              success: true 
-            };
-          })
-        );
-        
-        // Update local status
-        formsToSubmit.forEach((form) => {
-          const key = `${form.caseId}_${form.templateName}`;
-          const updatedForm = { ...form, status: 'synced' as const };
-          this.formDataMap.set(key, updatedForm);
-        });
-        
-        this.saveToLocalStorage();
-        
-        return { 
-          success: true, 
-          message: `Successfully submitted ${results.length} forms using Supabase` 
-        };
+        console.error('Python API submission failed:', pythonApiError);
+        throw new Error('Failed to submit forms to Python API. Please try again.');
       }
     } catch (error) {
       console.error('Error submitting forms:', error);
