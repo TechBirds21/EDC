@@ -22,10 +22,10 @@ class Settings(BaseSettings):
     # Database settings
     DATABASE_URL: PostgresDsn
     
-    # Supabase settings
-    SUPABASE_URL: str
-    SUPABASE_KEY: str
-    SUPABASE_JWT_SECRET: str
+    # JWT secret for local authentication
+    JWT_SECRET: str = "your-secret-key-here"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
     # Pagination defaults
     DEFAULT_PAGE_SIZE: int = 20

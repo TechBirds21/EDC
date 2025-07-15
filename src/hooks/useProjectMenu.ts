@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { pythonApi } from '@/services/api';
 
 export interface MenuSubsection {
   title: string;
@@ -24,15 +25,11 @@ export const useProjectMenu = (pid: string) => {
 
   const loadProjectMenu = async () => {
     try {
-      // Try to load from database first
-      const { data, error } = await supabase
-        .from('project_menus')
-        .select('menu_structure')
-        .eq('project_id', pid)
-        .maybeSingle();
-
-      if (data && !error) {
-        setMenu(data.menu_structure as unknown as ProjectMenu);
+      // Try to load from database first using Python API
+      const result = await pythonApi.fetchWithAuth(`/project-menus/${pid}`);
+      
+      if (result && result.menu_structure) {
+        setMenu(result.menu_structure as ProjectMenu);
       } else {
         // Fallback to default menu structure
         setMenu(getDefaultMenu());
@@ -47,19 +44,16 @@ export const useProjectMenu = (pid: string) => {
 
   const updateProjectMenu = async (newMenu: ProjectMenu) => {
     try {
-      const { error } = await supabase
-        .from('project_menus')
-        .upsert({
-          project_id: pid,
-          menu_structure: newMenu as any,
+      await pythonApi.fetchWithAuth(`/project-menus/${pid}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          menu_structure: newMenu,
           updated_at: new Date().toISOString()
-        });
+        })
+      });
 
-      if (!error) {
-        setMenu(newMenu);
-      }
-      
-      return { error };
+      setMenu(newMenu);
+      return { error: null };
     } catch (error) {
       return { error };
     }

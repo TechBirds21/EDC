@@ -11,9 +11,13 @@ export const pythonApi = {
     : 'http://localhost:8000/api',
     
   async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-    // Set default headers (removed Supabase auth)
+    // Get auth token from localStorage
+    const token = localStorage.getItem('auth_token');
+    
+    // Set default headers with auth token
     const headers = {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers
     };
     

@@ -16,13 +16,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const savedUser = localStorage.getItem('auth_user');
-        if (savedUser) {
+        const savedToken = localStorage.getItem('auth_token');
+        if (savedUser && savedToken) {
           const userData = JSON.parse(savedUser);
           setUser(userData);
-          setSession({ user: userData });
+          setSession({ user: userData, access_token: savedToken });
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_token');
       } finally {
         setLoading(false);
       }
@@ -34,46 +37,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Simplified demo login - in production this would call your API
       console.log('Attempting sign in for:', email);
       
-      // Demo users for testing
-      const demoUsers: Record<string, { password: string; role: UserRole; first_name: string; last_name: string }> = {
-        'admin@test.com': { password: 'admin123', role: 'admin', first_name: 'Admin', last_name: 'User' },
-        'employee@test.com': { password: 'employee123', role: 'employee', first_name: 'Employee', last_name: 'User' },
-        'super@test.com': { password: 'super123', role: 'super_admin', first_name: 'Super', last_name: 'Admin' }
-      };
+      // Call the backend API for authentication
+      const response = await fetch('http://localhost:8000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      const demoUser = demoUsers[email];
-      if (demoUser && demoUser.password === password) {
+      if (response.ok) {
+        const data = await response.json();
+        
         const userData: AuthUser = {
-          id: Math.random().toString(36).substr(2, 9),
-          email,
-          role: demoUser.role,
+          id: data.user.id,
+          email: data.user.email,
+          role: data.user.role as UserRole,
           profile: {
-            id: Math.random().toString(36).substr(2, 9),
-            email,
-            first_name: demoUser.first_name,
-            last_name: demoUser.last_name,
-            role: demoUser.role,
+            id: data.user.id,
+            email: data.user.email,
+            first_name: data.user.name.split(' ')[0] || '',
+            last_name: data.user.name.split(' ')[1] || '',
+            role: data.user.role as UserRole,
             status: 'active'
           }
         };
         
         setUser(userData);
-        setSession({ user: userData });
+        setSession({ 
+          user: userData, 
+          access_token: data.access_token 
+        });
         localStorage.setItem('auth_user', JSON.stringify(userData));
+        localStorage.setItem('auth_token', data.access_token);
         
         setLoading(false);
         return { error: null };
       } else {
+        const errorData = await response.json();
         setLoading(false);
-        return { error: { message: 'Invalid credentials' } };
+        return { error: { message: errorData.detail || 'Login failed' } };
       }
     } catch (err) {
       console.error('Sign in error:', err);
       setLoading(false);
-      return { error: err };
+      return { error: { message: 'Network error. Please try again.' } };
     }
   };
 
@@ -110,9 +120,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     setLoading(true);
     
+    try {
+      // Call the backend logout endpoint
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        await fetch('http://localhost:8000/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    }
+    
     setUser(null);
     setSession(null);
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_token');
     setLoading(false);
   };
 
