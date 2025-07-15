@@ -1,11 +1,16 @@
 # ================================================================
-# EDC Production Environment Variables
+# EDC Production Environment Variables - Post Migration
 # Copy this file to .env in the backend directory and update values
 # ================================================================
 
 # Database Configuration
-# Use the provided Neon PostgreSQL connection string
+# Use the provided Neon PostgreSQL connection string (Supabase removed)
 DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_KOIGcFo9NJh7@ep-flat-river-a1y2bf91-pooler.ap-southeast-1.aws.neon.tech/neondb
+
+# Frontend API Configuration
+# Set the backend API URL for frontend to connect to
+VITE_API_URL=http://localhost:8000  # Development
+# VITE_API_URL=https://your-api-domain.com  # Production
 
 # JWT Authentication Settings
 # IMPORTANT: Change this secret key in production!
@@ -14,7 +19,7 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=11520  # 8 days
 
 # CORS Settings - Frontend URLs
-BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:8080","https://your-domain.com"]
+BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:8080","http://localhost:8081","https://your-domain.com"]
 
 # API Configuration
 API_V1_STR=/api/v1
