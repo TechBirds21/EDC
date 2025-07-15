@@ -58,8 +58,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           profile: {
             id: data.user.id,
             email: data.user.email,
-            first_name: data.user.name.split(' ')[0] || '',
-            last_name: data.user.name.split(' ')[1] || '',
+            first_name: data.user.first_name || '',
+            last_name: data.user.last_name || '',
             role: data.user.role as UserRole,
             status: 'active'
           }

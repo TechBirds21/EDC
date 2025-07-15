@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { pythonApi } from '@/services/api';
 
 interface HeaderData {
   age: string;
@@ -85,21 +86,15 @@ export const useBhcgTest = (caseId: string | null, volunteerId: string | null, s
     if (!caseId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('patient_forms')
-        .select('answers')
-        .eq('case_id', caseId)
-        .eq('template_name', 'β-HCG Test')
-        .maybeSingle();
+      // Load from Python API
+      const response = await pythonApi.getForms(1, 100, {
+        template_id: 'bhcg_test',
+        volunteer_id: caseId
+      });
 
-      if (error) {
-        console.error('Error loading data:', error);
-        return;
-      }
-
-      if (data?.answers) {
-        const answers = data.answers as unknown as FormData;
-        setFormData(answers);
+      if (response && response.items.length > 0) {
+        const formData = response.items[0].data as FormData;
+        setFormData(formData);
         setIsSaved(true);
       }
     } catch (error) {
@@ -152,18 +147,14 @@ export const useBhcgTest = (caseId: string | null, volunteerId: string | null, s
       // Save to localStorage
       localStorage.setItem(`bhcgTest_${volunteerId}`, JSON.stringify(formData));
 
-      // Save to database
-      const { error } = await supabase
-        .from('patient_forms')
-        .upsert({
-          case_id: caseId,
-          volunteer_id: volunteerId,
-          study_number: studyNumber,
-          template_name: 'β-HCG Test',
-          answers: formData as any
-        });
-
-      if (error) throw error;
+      // Save to Python API
+      await pythonApi.createForm({
+        template_id: 'bhcg_test',
+        volunteer_id: volunteerId,
+        study_number: studyNumber,
+        data: formData,
+        status: 'submitted'
+      });
 
       setIsSaved(true);
       toast.success('β-HCG test saved successfully');
