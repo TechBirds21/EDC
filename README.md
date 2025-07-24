@@ -4,7 +4,7 @@
 
 A comprehensive Electronic Data Capture (EDC) system built with modern technologies, featuring PostgreSQL integration, unified forms management, role-based access control, and comprehensive audit logging.
 
-> **🎉 Migration Complete**: All Supabase dependencies have been removed. The system now runs entirely on Python FastAPI + PostgreSQL. See [MIGRATION_COMPLETE.md](./MIGRATION_COMPLETE.md) for details.
+> **🎉 Migration Complete**: All Supabase dependencies have been removed. The system now runs entirely on Python FastAPI + PostgreSQL.
 
 ## ✨ Features Implemented
 
