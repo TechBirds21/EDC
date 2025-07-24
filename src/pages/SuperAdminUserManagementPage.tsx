@@ -25,8 +25,48 @@ interface User {
   last_login: string;
 }
 
+// Mock users data
+const MOCK_USERS: User[] = [
+  {
+    id: '1',
+    email: 'superadmin@edc.com',
+    first_name: 'Super',
+    last_name: 'Admin',
+    role: 'super_admin',
+    status: 'active',
+    department: 'IT',
+    position: 'System Administrator',
+    created_at: '2024-01-01T00:00:00Z',
+    last_login: '2024-01-15T10:30:00Z'
+  },
+  {
+    id: '2',
+    email: 'admin@edc.com',
+    first_name: 'Admin',
+    last_name: 'User',
+    role: 'admin',
+    status: 'active',
+    department: 'Operations',
+    position: 'Administrator',
+    created_at: '2024-01-02T00:00:00Z',
+    last_login: '2024-01-14T09:15:00Z'
+  },
+  {
+    id: '3',
+    email: 'employee@edc.com',
+    first_name: 'Employee',
+    last_name: 'User',
+    role: 'employee',
+    status: 'active',
+    department: 'Research',
+    position: 'Research Assistant',
+    created_at: '2024-01-03T00:00:00Z',
+    last_login: '2024-01-13T14:20:00Z'
+  }
+];
+
 const SuperAdminUserManagementPage: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -52,13 +92,9 @@ const SuperAdminUserManagementPage: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setUsers(MOCK_USERS);
     } catch (error: any) {
       console.error('Error loading users:', error);
       toast({
@@ -82,30 +118,21 @@ const SuperAdminUserManagementPage: React.FC = () => {
         return;
       }
 
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Create new user with mock data
+      const newUserData: User = {
+        id: (users.length + 1).toString(),
         email: newUser.email,
-        password: newUser.password,
-        email_confirm: true,
-        user_metadata: {
-          first_name: newUser.first_name,
-          last_name: newUser.last_name
-        }
-      });
+        first_name: newUser.first_name,
+        last_name: newUser.last_name,
+        role: newUser.role,
+        status: 'active',
+        department: newUser.department,
+        position: newUser.position,
+        created_at: new Date().toISOString(),
+        last_login: ''
+      };
 
-      if (authError) throw authError;
-
-      // Update profile with additional details
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          role: newUser.role,
-          department: newUser.department,
-          position: newUser.position
-        })
-        .eq('id', authData.user.id);
-
-      if (profileError) throw profileError;
+      setUsers([...users, newUserData]);
 
       toast({
         title: "Success",
@@ -122,7 +149,6 @@ const SuperAdminUserManagementPage: React.FC = () => {
         department: '',
         position: ''
       });
-      loadUsers();
     } catch (error: any) {
       console.error('Error adding user:', error);
       toast({
@@ -137,19 +163,10 @@ const SuperAdminUserManagementPage: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: selectedUser.first_name,
-          last_name: selectedUser.last_name,
-          role: selectedUser.role,
-          department: selectedUser.department,
-          position: selectedUser.position,
-          status: selectedUser.status
-        })
-        .eq('id', selectedUser.id);
-
-      if (error) throw error;
+      // Update user in mock data
+      setUsers(users.map(user => 
+        user.id === selectedUser.id ? selectedUser : user
+      ));
 
       toast({
         title: "Success",
@@ -158,7 +175,6 @@ const SuperAdminUserManagementPage: React.FC = () => {
 
       setIsEditDialogOpen(false);
       setSelectedUser(null);
-      loadUsers();
     } catch (error: any) {
       console.error('Error updating user:', error);
       toast({
@@ -173,17 +189,13 @@ const SuperAdminUserManagementPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      // Delete from auth and profile will cascade
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (error) throw error;
+      // Remove user from mock data
+      setUsers(users.filter(user => user.id !== userId));
 
       toast({
         title: "Success",
         description: "User deleted successfully"
       });
-
-      loadUsers();
     } catch (error: any) {
       console.error('Error deleting user:', error);
       toast({
