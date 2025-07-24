@@ -30,7 +30,8 @@ const RequireRole: React.FC<RequireRoleProps> = ({ children, role }) => {
   if (!roles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
     const dashboardRoute = user.role === 'super_admin' ? '/superadmin' : 
-                          user.role === 'admin' ? '/admin/dashboard' : '/employee';
+                          user.role === 'admin' ? '/admin/dashboard' : 
+                          user.role === 'verifier' ? '/verifier' : '/employee';
     return <Navigate to={dashboardRoute} replace />;
   }
   
