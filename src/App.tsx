@@ -4,6 +4,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { useAuth } from '@/contexts/AuthContext';
 import { VolunteerProvider } from '@/context/VolunteerContext';
 import { GlobalFormProvider } from '@/context/GlobalFormContext';
+import { FormFlowProvider } from '@/context/FormFlowContext';
 import RequireRole from '@/components/RequireRole';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -116,9 +117,10 @@ function App() {
   return (
     <AuthProvider>
       <GlobalFormProvider>
-        <VolunteerProvider>
-          <Router>
-            <Routes>
+        <FormFlowProvider>
+          <VolunteerProvider>
+            <Router>
+              <Routes>
               {/* Public Routes */}
               <Route path="/login" element={
                 <PublicRoute>
@@ -194,10 +196,11 @@ function App() {
               
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/login" />} />
-            </Routes>
-            <Toaster />
-          </Router>
-        </VolunteerProvider>
+              </Routes>
+              <Toaster />
+            </Router>
+          </VolunteerProvider>
+        </FormFlowProvider>
       </GlobalFormProvider>
     </AuthProvider>
   );

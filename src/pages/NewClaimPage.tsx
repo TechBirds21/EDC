@@ -7,38 +7,50 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { db } from '@/lib/dexie';
+import { useFormFlow } from '@/context/FormFlowContext';
+import { toast } from 'sonner';
+
+// Define the standard form sequence for clinical data collection
+const CLINICAL_FORM_SEQUENCE = [
+  'demographics',
+  'medical_history', 
+  'vital_signs',
+  'lab_results',
+  'adverse_events',
+  'concomitant_medication',
+  'final_assessment'
+];
 
 const NewClaimPage: React.FC = () => {
   const { pid } = useParams<{ pid: string }>();
   const navigate = useNavigate();
+  const { initializeSession, loading, error } = useFormFlow();
   const [volunteerId, setVolunteerId] = useState('');
   const [studyNumber, setStudyNumber] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
 
   const handleCreateClaim = async () => {
     if (!volunteerId.trim() || !studyNumber.trim()) {
-      alert('Please fill in both Volunteer ID and Study Number');
+      toast.error('Please fill in both Volunteer ID and Study Number');
       return;
     }
 
-    setLoading(true);
+    setLocalLoading(true);
     try {
       // Generate a unique case ID
       const caseId = `case-${Date.now()}`;
       
-      // Create initial entry in IndexedDB
-      await db.pending_forms.add({
-        template_id: 'new-claim',
-        patient_id: caseId,
-        volunteer_id: volunteerId.trim(),
-        study_number: studyNumber.trim(),
-        answers: {},
-        created_at: new Date(),
-        last_modified: new Date()
-      });
+      // Initialize the form session with the clinical form sequence
+      await initializeSession(
+        caseId, 
+        volunteerId.trim(), 
+        studyNumber.trim(), 
+        CLINICAL_FORM_SEQUENCE
+      );
 
-      // Navigate to the demographics form with all required parameters
+      toast.success('Claim created successfully!');
+
+      // Navigate to the first form in the sequence (demographics)
       const searchParams = new URLSearchParams();
       searchParams.set('case', caseId);
       searchParams.set('volunteerId', volunteerId.trim());
@@ -47,15 +59,17 @@ const NewClaimPage: React.FC = () => {
       navigate(`/employee/project/${pid}/dashboard/screening/demographics?${searchParams.toString()}`);
     } catch (error) {
       console.error('Failed to create claim:', error);
-      alert('Failed to create claim. Please try again.');
+      toast.error('Failed to create claim. Please try again.');
     } finally {
-      setLoading(false);
+      setLocalLoading(false);
     }
   };
 
   const handleGoBack = () => {
     navigate(`/employee/projects`);
   };
+
+  const isLoading = loading || localLoading;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -64,6 +78,7 @@ const NewClaimPage: React.FC = () => {
         <Button 
           variant="ghost" 
           onClick={handleGoBack}
+          disabled={isLoading}
           className="mb-4 flex items-center space-x-2"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -78,10 +93,17 @@ const NewClaimPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Error Display */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <Alert>
               <AlertDescription>
                 Enter the Volunteer ID and Study Number to begin data collection. 
-                These values will be used throughout all forms in this case.
+                This will initialize a complete clinical data collection session with {CLINICAL_FORM_SEQUENCE.length} forms.
               </AlertDescription>
             </Alert>
 
@@ -98,6 +120,7 @@ const NewClaimPage: React.FC = () => {
                   onChange={(e) => setVolunteerId(e.target.value)}
                   placeholder="Enter Volunteer ID (e.g., VOL-001)"
                   className="border-blue-300 focus:border-blue-500"
+                  disabled={isLoading}
                   required
                 />
               </div>
@@ -114,8 +137,26 @@ const NewClaimPage: React.FC = () => {
                   onChange={(e) => setStudyNumber(e.target.value)}
                   placeholder="Enter Study Number (e.g., STD-2024-001)"
                   className="border-blue-300 focus:border-blue-500"
+                  disabled={isLoading}
                   required
                 />
+              </div>
+            </div>
+
+            {/* Form Sequence Preview */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium text-sm text-gray-700 mb-2">
+                Clinical Data Collection Sequence ({CLINICAL_FORM_SEQUENCE.length} forms):
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                {CLINICAL_FORM_SEQUENCE.map((form, index) => (
+                  <div key={form} className="flex items-center space-x-2">
+                    <span className="bg-blue-100 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
+                      {index + 1}
+                    </span>
+                    <span className="capitalize">{form.replace('_', ' ')}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -123,15 +164,16 @@ const NewClaimPage: React.FC = () => {
               <Button 
                 variant="outline" 
                 onClick={handleGoBack}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleCreateClaim}
-                disabled={loading || !volunteerId.trim() || !studyNumber.trim()}
+                disabled={isLoading || !volunteerId.trim() || !studyNumber.trim()}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {loading ? 'Creating...' : 'Create Claim & Start Demographics'}
+                {isLoading ? 'Creating...' : 'Create Claim & Start Data Collection'}
               </Button>
             </div>
           </CardContent>

@@ -1,8 +1,9 @@
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Dict, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from app.api.dependencies import get_current_user_id, get_pagination_params
 from app.core.security import User, get_current_user
@@ -20,6 +21,204 @@ from app.services import form as form_service
 from app.services import volunteer as volunteer_service
 
 router = APIRouter()
+
+
+# New schemas for bulk submission
+class FormSubmissionData(BaseModel):
+    case_id: str
+    volunteer_id: str
+    study_number: str
+    forms_data: Dict[str, Any]
+    metadata: Dict[str, Any]
+
+
+class BulkSubmissionResponse(BaseModel):
+    success: bool
+    case_id: str
+    submission_id: Optional[str] = None
+    message: str
+    errors: Optional[Dict[str, list]] = None
+
+
+class PartialFormSubmission(BaseModel):
+    case_id: str
+    form_name: str
+    form_data: Dict[str, Any]
+    submitted_at: str
+
+
+class FormSyncData(BaseModel):
+    template_id: str
+    patient_id: str
+    volunteer_id: Optional[str] = None
+    study_number: Optional[str] = None
+    answers: Dict[str, Any]
+    created_at: str
+    last_modified: str
+
+
+@router.post("/bulk-submit", response_model=BulkSubmissionResponse)
+async def bulk_submit_forms(
+    submission_data: FormSubmissionData,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user_id),
+):
+    """
+    Submit all form data for a case in bulk.
+    """
+    try:
+        # Verify volunteer exists
+        volunteer = await volunteer_service.get_volunteer_by_id(
+            db=db, volunteer_id=submission_data.volunteer_id
+        )
+        if not volunteer:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Volunteer not found"
+            )
+
+        # Create forms for each form in the submission
+        created_forms = []
+        for form_name, form_data in submission_data.forms_data.items():
+            # Create form entry
+            form_create = FormCreate(
+                template_id=form_name,  # Using form name as template_id for now
+                volunteer_id=UUID(submission_data.volunteer_id),
+                data=form_data,
+                status="submitted"
+            )
+            
+            form = await form_service.create_form(
+                db=db, obj_in=form_create, created_by=UUID(current_user_id)
+            )
+            created_forms.append(form)
+
+        # Log the bulk submission
+        submission_id = f"bulk_{submission_data.case_id}_{len(created_forms)}"
+        
+        return BulkSubmissionResponse(
+            success=True,
+            case_id=submission_data.case_id,
+            submission_id=submission_id,
+            message=f"Successfully submitted {len(created_forms)} forms"
+        )
+
+    except Exception as e:
+        return BulkSubmissionResponse(
+            success=False,
+            case_id=submission_data.case_id,
+            message=f"Failed to submit forms: {str(e)}",
+            errors={"general": [str(e)]}
+        )
+
+
+@router.post("/partial-submit", response_model=BulkSubmissionResponse)
+async def partial_submit_form(
+    submission_data: PartialFormSubmission,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user_id),
+):
+    """
+    Submit individual form data (partial submission).
+    """
+    try:
+        # Create or update form entry
+        form_create = FormCreate(
+            template_id=submission_data.form_name,
+            volunteer_id=UUID(submission_data.case_id),  # Using case_id as volunteer_id for now
+            data=submission_data.form_data,
+            status="draft"
+        )
+        
+        form = await form_service.create_form(
+            db=db, obj_in=form_create, created_by=UUID(current_user_id)
+        )
+        
+        return BulkSubmissionResponse(
+            success=True,
+            case_id=submission_data.case_id,
+            submission_id=str(form.id),
+            message=f"Successfully submitted {submission_data.form_name}"
+        )
+
+    except Exception as e:
+        return BulkSubmissionResponse(
+            success=False,
+            case_id=submission_data.case_id,
+            message=f"Failed to submit form: {str(e)}",
+            errors={"general": [str(e)]}
+        )
+
+
+@router.post("/sync", response_model=BulkSubmissionResponse)
+async def sync_form_data(
+    sync_data: FormSyncData,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: str = Depends(get_current_user_id),
+):
+    """
+    Sync pending form data from local storage.
+    """
+    try:
+        # Create form entry
+        form_create = FormCreate(
+            template_id=sync_data.template_id,
+            volunteer_id=UUID(sync_data.patient_id),
+            data=sync_data.answers,
+            status="synced"
+        )
+        
+        form = await form_service.create_form(
+            db=db, obj_in=form_create, created_by=UUID(current_user_id)
+        )
+        
+        return BulkSubmissionResponse(
+            success=True,
+            case_id=sync_data.patient_id,
+            submission_id=str(form.id),
+            message="Successfully synced form data"
+        )
+
+    except Exception as e:
+        return BulkSubmissionResponse(
+            success=False,
+            case_id=sync_data.patient_id,
+            message=f"Failed to sync form: {str(e)}",
+            errors={"general": [str(e)]}
+        )
+
+
+@router.get("/submission-status/{case_id}")
+async def get_submission_status(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get submission status for a case.
+    """
+    try:
+        # Check if forms exist for this case
+        forms, total = await form_service.list_forms(
+            db=db,
+            volunteer_id=UUID(case_id),
+            page=1,
+            size=1
+        )
+        
+        if total > 0:
+            latest_form = forms[0]
+            return {
+                "submitted": True,
+                "submission_id": str(latest_form.id),
+                "submitted_at": latest_form.created_at.isoformat(),
+                "status": latest_form.status
+            }
+        else:
+            return {"submitted": False}
+
+    except Exception as e:
+        return {"submitted": False, "error": str(e)}
 
 
 @router.post(
