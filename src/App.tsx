@@ -4,6 +4,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { useAuth } from '@/contexts/AuthContext';
 import { VolunteerProvider } from '@/context/VolunteerContext';
 import { GlobalFormProvider } from '@/context/GlobalFormContext';
+import { FormFlowProvider } from '@/context/FormFlowContext';
 import RequireRole from '@/components/RequireRole';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -41,6 +42,8 @@ import SuperAdminUserManagementPage from '@/pages/SuperAdminUserManagementPage';
 import EmployeeProjectsPage from '@/pages/EmployeeProjectsPage';
 import ProjectDashboardLayout from '@/pages/ProjectDashboardLayout';
 import NewClaimPage from '@/pages/NewClaimPage';
+import DemographicsFormPage from '@/pages/DemographicsFormPage';
+import FormFlowDemoPage from '@/pages/FormFlowDemoPage';
 
 // Role guard component
 const RoleGuard = ({ allowedRoles, children }: { allowedRoles: string[], children: React.ReactNode }) => {
@@ -116,9 +119,10 @@ function App() {
   return (
     <AuthProvider>
       <GlobalFormProvider>
-        <VolunteerProvider>
-          <Router>
-            <Routes>
+        <FormFlowProvider>
+          <VolunteerProvider>
+            <Router>
+              <Routes>
               {/* Public Routes */}
               <Route path="/login" element={
                 <PublicRoute>
@@ -128,6 +132,12 @@ function App() {
 
               {/* Form Example Route */}
               <Route path="/form-example" element={<FormExample />} />
+              
+              {/* Form Flow Demo Route - Public for testing */}
+              <Route path="/demo" element={<FormFlowDemoPage />} />
+              
+              {/* Public Demo Form Routes */}
+              <Route path="/demo/demographics" element={<DemographicsFormPage />} />
 
               {/* Super Admin Routes */}
               <Route path="/superadmin/*" element={
@@ -185,6 +195,9 @@ function App() {
                 {/* New Claim Route - Outside of ProjectDashboardLayout */}
                 <Route path="project/:pid/new-claim" element={<NewClaimPage />} />
                 
+                {/* Demographics Form Route */}
+                <Route path="project/:pid/dashboard/screening/demographics" element={<DemographicsFormPage />} />
+                
                 {/* Project Dashboard Routes */}
                 <Route path="project/:pid/*" element={<ProjectDashboardLayout />} />
               </Route>
@@ -194,10 +207,11 @@ function App() {
               
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/login" />} />
-            </Routes>
-            <Toaster />
-          </Router>
-        </VolunteerProvider>
+              </Routes>
+              <Toaster />
+            </Router>
+          </VolunteerProvider>
+        </FormFlowProvider>
       </GlobalFormProvider>
     </AuthProvider>
   );
