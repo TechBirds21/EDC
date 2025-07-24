@@ -32,6 +32,7 @@ const LoginPage: React.FC = () => {
     employee: { email: 'employee@edc.com', role: 'employee' as UserRole },
     admin: { email: 'admin@edc.com', role: 'admin' as UserRole },
     super_admin: { email: 'superadmin@edc.com', role: 'super_admin' as UserRole },
+    verifier: { email: 'verifier@edc.com', role: 'verifier' as UserRole },
   };
 
   // Clear volunteer data when starting fresh
@@ -122,6 +123,7 @@ const LoginPage: React.FC = () => {
                 <SelectItem value="employee">Employee</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="verifier">Verifier</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -197,6 +199,7 @@ const LoginPage: React.FC = () => {
             <p><strong>Employee:</strong> employee@edc.com</p>
             <p><strong>Admin:</strong> admin@edc.com</p>
             <p><strong>Super Admin:</strong> superadmin@edc.com</p>
+            <p><strong>Verifier:</strong> verifier@edc.com</p>
           </div>
           <p>Select your role above to auto-fill the email address</p>
         </div>

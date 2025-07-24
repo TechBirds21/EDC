@@ -39,6 +39,7 @@ import SuperAdminDashboard from '@/pages/SuperAdminDashboard';
 import SuperAdminClientsPage from '@/pages/SuperAdminClientsPage';
 import SuperAdminGlobalTemplatesPage from '@/pages/SuperAdminGlobalTemplatesPage';
 import SuperAdminUserManagementPage from '@/pages/SuperAdminUserManagementPage';
+import VerifierDashboard from '@/pages/VerifierDashboard';
 import EmployeeProjectsPage from '@/pages/EmployeeProjectsPage';
 import ProjectDashboardLayout from '@/pages/ProjectDashboardLayout';
 import NewClaimPage from '@/pages/NewClaimPage';
@@ -64,7 +65,8 @@ const RoleGuard = ({ allowedRoles, children }: { allowedRoles: string[], childre
   if (!allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
     const dashboardRoute = user.role === 'super_admin' ? '/superadmin' : 
-                          user.role === 'admin' ? '/admin' : '/employee';
+                          user.role === 'admin' ? '/admin' : 
+                          user.role === 'verifier' ? '/verifier' : '/employee';
     return <Navigate to={dashboardRoute} replace />;
   }
 
@@ -89,7 +91,8 @@ const RootRedirect = () => {
 
   // Navigate to appropriate dashboard based on role
   const dashboardRoute = user.role === 'super_admin' ? '/superadmin' : 
-                        user.role === 'admin' ? '/admin' : '/employee';
+                        user.role === 'admin' ? '/admin' : 
+                        user.role === 'verifier' ? '/verifier' : '/employee';
   return <Navigate to={dashboardRoute} replace />;
 };
 
@@ -108,7 +111,8 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   if (user) {
     // Redirect authenticated users to their dashboard
     const dashboardRoute = user.role === 'super_admin' ? '/superadmin' : 
-                          user.role === 'admin' ? '/admin' : '/employee';
+                          user.role === 'admin' ? '/admin' : 
+                          user.role === 'verifier' ? '/verifier' : '/employee';
     return <Navigate to={dashboardRoute} replace />;
   }
 
@@ -150,6 +154,15 @@ function App() {
                 <Route path="templates" element={<SuperAdminGlobalTemplatesPage />} />
                 <Route path="audit-logs" element={<AdminAuditLogPage />} />
                 <Route path="users" element={<SuperAdminUserManagementPage />} />
+              </Route>
+
+              {/* Verifier Routes */}
+              <Route path="/verifier/*" element={
+                <RoleGuard allowedRoles={['verifier']}>
+                  <Outlet />
+                </RoleGuard>
+              }>
+                <Route index element={<VerifierDashboard />} />
               </Route>
 
               {/* Admin Routes */}

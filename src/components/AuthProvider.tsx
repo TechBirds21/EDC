@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         'employee@edc.com': { role: 'employee' as UserRole, firstName: 'John', lastName: 'Employee' },
         'admin@edc.com': { role: 'admin' as UserRole, firstName: 'Jane', lastName: 'Admin' },
         'superadmin@edc.com': { role: 'super_admin' as UserRole, firstName: 'Super', lastName: 'Admin' },
+        'verifier@edc.com': { role: 'verifier' as UserRole, firstName: 'Verify', lastName: 'Expert' },
       };
 
       const testUser = testUsers[email as keyof typeof testUsers];
