@@ -8,12 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VolunteerSearchForm from '@/components/VolunteerSearchForm';
+import { UserRole } from '@/types/auth';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('employee');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,10 +27,24 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Pre-defined test users based on role
+  const testUsers = {
+    employee: { email: 'employee@edc.com', role: 'employee' as UserRole },
+    admin: { email: 'admin@edc.com', role: 'admin' as UserRole },
+    super_admin: { email: 'superadmin@edc.com', role: 'super_admin' as UserRole },
+  };
+
   // Clear volunteer data when starting fresh
   React.useEffect(() => {
     clearVolunteerData();
   }, [clearVolunteerData]);
+
+  // Update email when role is selected
+  React.useEffect(() => {
+    if (selectedRole && testUsers[selectedRole]) {
+      setEmail(testUsers[selectedRole].email);
+    }
+  }, [selectedRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +113,20 @@ const LoginPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="role">Select Your Role</Label>
+            <Select value={selectedRole} onValueChange={(value: UserRole) => setSelectedRole(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose your role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employee">Employee</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -104,7 +135,11 @@ const LoginPage: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
               required
+              disabled={!isSignUpMode} // Auto-populate based on role for sign in
             />
+            {!isSignUpMode && (
+              <p className="text-xs text-muted-foreground">Email is auto-populated based on selected role</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -120,6 +155,9 @@ const LoginPage: React.FC = () => {
             />
             {isSignUpMode && (
               <p className="text-xs text-muted-foreground">Password must be at least 6 characters long</p>
+            )}
+            {!isSignUpMode && (
+              <p className="text-xs text-muted-foreground">For test users, any password will work</p>
             )}
           </div>
 
@@ -153,8 +191,14 @@ const LoginPage: React.FC = () => {
           </Button>
         </div>
 
-        <div className="text-center text-xs text-muted-foreground">
-          <p>For system access, please contact your administrator</p>
+        <div className="text-center text-xs text-muted-foreground space-y-2">
+          <p>Available test accounts:</p>
+          <div className="grid grid-cols-1 gap-1 text-left bg-gray-50 dark:bg-gray-800 p-3 rounded">
+            <p><strong>Employee:</strong> employee@edc.com</p>
+            <p><strong>Admin:</strong> admin@edc.com</p>
+            <p><strong>Super Admin:</strong> superadmin@edc.com</p>
+          </div>
+          <p>Select your role above to auto-fill the email address</p>
         </div>
       </div>
     </AuthLayout>
