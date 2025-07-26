@@ -21,7 +21,7 @@ interface UserProfile {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
-  role: 'employee' | 'admin' | 'super_admin';
+  role: 'employee' | 'admin' | 'super_admin' | 'verifier';
   status: string | null;
   department: string | null;
   position: string | null;
